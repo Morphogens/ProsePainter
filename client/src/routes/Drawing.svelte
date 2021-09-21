@@ -6,6 +6,7 @@
     import { socket, socketOpen } from '@/lib/socket';
     import { activeLayer, layers, undo, layerImages } from "@/drawing/stores";
     import { onMount, tick } from "svelte";
+    import Indicator from "@/Indicator.svelte";
     
     let isOptimizing = false
     let previewCanvas: HTMLCanvasElement;
@@ -70,7 +71,10 @@
 </script>
 
 <svelte:window  on:keydown={onKeyDown} on:keyup={onKeyUp} />
-
+<div class="flex items-center px-2 py-1">
+    <Indicator state={$socketOpen} />
+    <div class="ml-1">Connection is {$socketOpen ? 'open' : 'closed'}</div>
+  </div>
 {#if $activeLayer}
     <OptionPanel />
 {/if}
