@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { activeLayer, activeLayerIdx, erasing, radius, layers } from "./stores";
+    import { activeLayer, erasing, radius, layerImages } from "./stores";
     import { drawLine, drawCircle } from './drawUtils'
     export let width: number
     export let height: number
@@ -17,8 +17,8 @@
                 ctx.strokeStyle = "rgba(255,255,255,1)";
             } else {
                 ctx.globalCompositeOperation = "source-over";
-                ctx.strokeStyle = $activeLayer.color;
-                ctx.fillStyle = $activeLayer.color;
+                ctx.strokeStyle = $activeLayer.get('color');
+                ctx.fillStyle = $activeLayer.get('color');
             }
             drawCircle(ctx, x, y, $radius)
             if (lastMouse) {
@@ -31,20 +31,23 @@
     function drawDone() {
         mouseDown = false
         lastMouse = null
+        const imageBase64 = canvas.toDataURL('image/png')
         const image = new Image(width, height)
-        image.src = canvas.toDataURL('image/png')
-        $layers[$activeLayerIdx].data = image
-        // $layers[$activeLayerIdx].data = ctx.getImageData(0, 0, width, height)
+        image.src = imageBase64
+
+        $activeLayer.set('imageBase64', imageBase64)
     }
     
     
     let lastActiveLayer = null
     $: if ($activeLayer != lastActiveLayer && ctx) {
         ctx.clearRect(0, 0, width, height)
-        lastActiveLayer = $activeLayer
-        if ($activeLayer && $activeLayer.data) {
-            // ctx.putImageData($activeLayer.data, 0, 0)
-            ctx.drawImage($activeLayer.data, 0, 0)
+        lastActiveLayer = $activeLayer        
+        if ($activeLayer) {
+            const image = layerImages.get($activeLayer)
+            if (image) {
+                ctx.drawImage(image, 0, 0)
+            }
         }
     }
 

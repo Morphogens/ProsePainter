@@ -1,7 +1,8 @@
 
 export interface DrawLayer {
     prompt: string
-    // data: ImageData | null
-    data: HTMLImageElement | null
     color: string
+    strength: number
+    image: HTMLImageElement | null
+    imageBase64: string | null
 }

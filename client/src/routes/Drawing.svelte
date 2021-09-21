@@ -3,8 +3,8 @@
     import DrawCanvas from "../drawing/DrawCanvas.svelte";
     import OptionPanel from "../drawing/OptionPanel.svelte";
     import LayersPanel from "../drawing/LayersPanel.svelte";
-    import { activeLayer, activeLayerIdx, layers, addLayer } from "../drawing/stores";
-    import { onMount } from "svelte";
+    import { activeLayer, activeLayerIdx, layers, addLayer, undo, layerImages } from "../drawing/stores";
+    import { onMount, tick } from "svelte";
     
     let previewCanvas: HTMLCanvasElement;
     let previewCanvasCtx: CanvasRenderingContext2D;
@@ -12,25 +12,41 @@
     const width = 512;
     const height = 512;
 
-    addLayer('a tea pot')
-    addLayer('a cat')
-
-    activeLayerIdx.subscribe($activeLayerIdx => {
+    async function drawBackground() {
+        await tick()
         if (!previewCanvasCtx) {
             return
         }
-        for (const layer of $layers.slice().reverse()) {
-            if (layer.data) {
-                console.log('Drawing', layer.prompt);
-                previewCanvasCtx.drawImage(layer.data, 0, 0);
+        previewCanvasCtx.clearRect(0, 0, width, height)
+        for (const layer of $layers.slice().reverse()){
+            const image = layerImages.get(layer)
+            // console.log(layer == $activeLayer, layer, $activeLayer);
+            if (image && layer != $activeLayer) {
+                previewCanvasCtx.drawImage(image, 0, 0)
             }
         }
-    })
+    }
 
+    $: if ($layers || $activeLayer) {
+        drawBackground()
+    }
+    
+    function onKeyDown(e: KeyboardEvent) {
+        if (e.code === 'KeyZ' && (e.metaKey === true || e.ctrlKey === true)) {
+            if (e.shiftKey) {
+                undo.redo()
+            } else {
+                undo.undo()
+            }
+        }
+    }
+    function onKeyUp(e: KeyboardEvent) {}
     onMount(() => {
         previewCanvasCtx = previewCanvas.getContext("2d");
-    })
+    })    
 </script>
+
+<svelte:window  on:keydown={onKeyDown} on:keyup={onKeyUp} />
 
 {#if $activeLayer}
     <OptionPanel />

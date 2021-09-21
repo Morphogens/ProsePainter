@@ -13,7 +13,7 @@
     {#each $layers as layer, index}
         <div
             class="layer"
-            style='color:{layer.color}'
+            style='color:{layer.get('color')}'
             class:selected={layer == $activeLayer}
             on:click={() => {
                 if ($activeLayer == layer) {
@@ -23,7 +23,8 @@
                 }
             }}
         >
-            <p>{layer.prompt}</p>
+            <p>{layer.get('prompt')}</p>
+            <p> - </p>
         </div>
     {/each}
     <button on:click={onClick}> +</button>
@@ -43,6 +44,8 @@
         align-items: center;
     }
     .layer {
+        display: flex;
+        justify-content: space-evenly;
         width: 200px;
         cursor: pointer;
     }
