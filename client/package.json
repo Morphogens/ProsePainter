@@ -32,6 +32,7 @@
     "svelte-knobby": "^0.3.1",
     "svelte-moveable": "^0.18.0",
     "tailwindcss": "^2.2.15",
+    "vite-tsconfig-paths": "^3.3.14",
     "y-indexeddb": "^9.0.6",
     "yjs": "^13.5.12"
   }

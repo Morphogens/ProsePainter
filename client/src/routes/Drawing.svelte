@@ -1,10 +1,10 @@
 <script lang="ts">
-    import InfiniteViewer from "../drawing/svelte-infinite-viewer";
-    import DrawCanvas from "../drawing/DrawCanvas.svelte";
-    import OptionPanel from "../drawing/OptionPanel.svelte";
-    import LayersPanel from "../drawing/LayersPanel.svelte";
-    import { socket, socketOpen } from '../lib/socket';
-    import { activeLayer, layers, undo, layerImages } from "../drawing/stores";
+    import InfiniteViewer from "@/drawing/svelte-infinite-viewer";
+    import DrawCanvas from "@/drawing/DrawCanvas.svelte";
+    import OptionPanel from "@/drawing/OptionPanel.svelte";
+    import LayersPanel from "@/drawing/LayersPanel.svelte";
+    import { socket, socketOpen } from '@/lib/socket';
+    import { activeLayer, layers, undo, layerImages } from "@/drawing/stores";
     import { onMount, tick } from "svelte";
     
     let isOptimizing = false
