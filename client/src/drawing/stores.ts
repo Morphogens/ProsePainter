@@ -41,6 +41,12 @@ export function addLayer(prompt:string) {
     activeLayerIdx.set(get(layers).length - 1)
 }
 
+
+export function removeLayer(layer:Y.Map<any>) {
+    const index = yLayers.toArray().indexOf(layer)
+    yLayers.delete(index, 1)
+}
+
 layers.subscribe($layers => {
     $layers.forEach(bindYLayer)
 })
