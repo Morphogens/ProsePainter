@@ -3,9 +3,11 @@
     import DrawCanvas from "../drawing/DrawCanvas.svelte";
     import OptionPanel from "../drawing/OptionPanel.svelte";
     import LayersPanel from "../drawing/LayersPanel.svelte";
-    import { activeLayer, activeLayerIdx, layers, addLayer, undo, layerImages } from "../drawing/stores";
+    import { socket, socketOpen } from '../lib/socket';
+    import { activeLayer, layers, undo, layerImages } from "../drawing/stores";
     import { onMount, tick } from "svelte";
     
+    let isOptimizing = false
     let previewCanvas: HTMLCanvasElement;
     let previewCanvasCtx: CanvasRenderingContext2D;
 
@@ -30,6 +32,27 @@
     $: if ($layers || $activeLayer) {
         drawBackground()
     }
+    
+    function sendMessage(topic: string, data: any) {
+        if ($socketOpen) {
+            socket.send(JSON.stringify({ topic, data }));
+        }
+    }
+
+    $: if (isOptimizing) {
+        const data = $layers.map(l => l.toJSON())        
+        sendMessage('setState', data)
+    } else {
+        sendMessage('setState', 'paused')
+    }
+
+    let img : string | undefined = undefined
+    socket.addEventListener('message', (e) => {
+        const message = JSON.parse(e.data);
+        if (message.image) {
+            img = 'data:text/plain;base64,' + message.image
+        }
+    });
     
     function onKeyDown(e: KeyboardEvent) {
         if (e.code === 'KeyZ' && (e.metaKey === true || e.ctrlKey === true)) {
@@ -58,16 +81,29 @@
     rangeX={[-256, 256]}
     rangeY={[-256, 256]}
 >
-    <div class="viewport" style="width:{width}px;height:{height}px">
-        <canvas
-            id='previewCanvas'
-            bind:this={previewCanvas}
-            {width}
-            {height}
-            style="opacity:{$activeLayer ? .33 : 1.0};"
-        />
-        {#if $activeLayer}
-            <DrawCanvas {width} {height} />
+    <div class="viewport" style="width:{width}px">
+        <div id='content' style="width:{width}px;height:{height}px">
+            <img class="select-none" draggable="false" src={img} />
+            <canvas
+                id='previewCanvas'
+                bind:this={previewCanvas}
+                {width}
+                {height}
+                style="opacity:{$activeLayer ? .33 : .33};"
+            />
+            {#if $activeLayer}
+                <DrawCanvas {width} {height} />
+            {/if}
+        </div>
+        {#if isOptimizing}
+            <button on:click={() => isOptimizing = false}> Stop </button>
+        {:else}
+            {#if $socketOpen}
+                <button on:click={() => isOptimizing = true}> Start </button>
+            {:else}
+                <button on:click={() => isOptimizing = true}> Start </button>
+                <!-- <p> Socket not open </p> -->
+            {/if}
         {/if}
     </div>
 </InfiniteViewer>
@@ -77,6 +113,9 @@
         top:0px;
         position:absolute;
         pointer-events:none;
+    }
+    #content {
+        border-bottom: 1px dashed;
     }
     :global(.viewer) {
         border: 1px solid black;
