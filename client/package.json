@@ -23,8 +23,11 @@
     "@types/lodash-es": "^4.17.5",
     "autoprefixer": "^10.3.4",
     "d3": "^7.0.1",
+    "infinite-viewer": "^0.12.1",
     "lodash-es": "^4.17.21",
+    "page": "^1.11.6",
     "postcss": "^8.3.6",
+    "randomcolor": "^0.6.2",
     "svelte-knobby": "^0.3.1",
     "svelte-moveable": "^0.18.0",
     "tailwindcss": "^2.2.15"
