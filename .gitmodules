@@ -1,0 +1,6 @@
+[submodule "server/taming-transformers"]
+	path = server/taming-transformers
+	url = https://github.com/CompVis/taming-transformers
+[submodule "server/CLIP"]
+	path = server/CLIP
+	url = https://github.com/openai/CLIP

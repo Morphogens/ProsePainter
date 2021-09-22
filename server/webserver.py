@@ -1,12 +1,8 @@
-import os
-import math
+
 import json
-import threading
 from typing import *
 from datetime import datetime
-import time
 from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
 
 import io
 import base64
@@ -14,9 +10,8 @@ import torch
 import asyncio
 import fastapi
 import uvicorn
-import skimage.measure
 import numpy as np
-from fastapi import FastAPI, WebSocket
+from fastapi import WebSocket
 from loguru import logger
 from torchvision.transforms import functional as TF
 

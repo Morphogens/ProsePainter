@@ -7,19 +7,7 @@
 # Based on a notebook by Katherine Crowson (https://github.com/crowsonkb, https://twitter.com/RiversHaveWings)
 # 
 
-
 import webserver
-import asyncio
-from threading import Thread
-loop = asyncio.get_event_loop()
-
-def mm_runner():
-#     asyncio.set_event_loop(loop)
-    webserver.main()
-    loop.run_forever()
-    
-mm_thread = Thread(target=mm_runner, daemon=True)
-mm_thread.start()
 
 
 # In[3]:
@@ -45,8 +33,8 @@ webserver.process_step(x)
 
 
 
-# !curl -L 'https://heibox.uni-heidelberg.de/d/a7530b09fed84f80a887/files/?p=%2Fconfigs%2Fmodel.yaml&dl=1' > vqgan_imagenet_f16_16384.yaml
-# !curl -L 'https://heibox.uni-heidelberg.de/d/a7530b09fed84f80a887/files/?p=%2Fckpts%2Flast.ckpt&dl=1' > vqgan_imagenet_f16_16384.ckpt
+
+
 
 
 # In[6]:
@@ -345,7 +333,6 @@ class EMATensor(nn.Module):
             return self.tensor
         return self.average
 
-get_ipython().run_line_magic('mkdir', '-p ./content/vids')
 
 
 # # ARGS
@@ -474,7 +461,7 @@ class UserGuide:
             hook.remove()
             
 #         total.backward(retain_graph=True)
-        
+        return 0 
     def init(self, z):
         self.z = z
         
@@ -530,11 +517,6 @@ plt.imshow(m)
 
 
 
-
-# In[13]:
-
-
-get_ipython().run_line_magic('timeit', 'm = create_circular_mask(H, W, [0.1 * W, 0.1 * H], radius=0.1*W)')
 
 
 # In[14]:
@@ -707,7 +689,6 @@ user_guided.init(z)
 # 
 torch.cuda.empty_cache()
 import gc; gc.collect()
-get_ipython().run_line_magic('pdb', 'off')
 
 i = 0
 import time
