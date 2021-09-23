@@ -3,9 +3,6 @@ Simple wrapper around running a notebook + webserver backend
 """
 import os
 
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-
 import asyncio
 from threading import Thread
 import webserver

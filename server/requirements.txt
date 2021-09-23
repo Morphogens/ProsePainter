@@ -1,3 +1,13 @@
+# web
 tqdm
 fastapi
 uvicorn[standard]
+
+# notebook dependencies
+ftfy
+regex
+tqdm
+omegaconf
+pytorch-lightning
+kornia
+einops

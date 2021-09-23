@@ -11,7 +11,7 @@ $ curl -L 'https://heibox.uni-heidelberg.de/d/a7530b09fed84f80a887/files/?p=%2Fc
 
 ## Run it
 ```sh
-$ cd server && python nc_app.py
+$ cd server && python np_app.py
 ```
 
 ## Switching to other notebooks
