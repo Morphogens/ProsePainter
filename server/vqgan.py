@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# Source: https://github.com/EleutherAI/vqgan-clip/blob/main/VQGAN%2BCLIP_(MSE%20regularized%20z%2Bquantize_method).ipynb
 # # Generates images from text prompts with VQGAN and CLIP (z+quantize method).
 # 
 # By jbustter https://twitter.com/jbusted1 .
@@ -422,45 +423,67 @@ perceptor = clip.load(args.clip_model, jit=False)[0].eval().requires_grad_(False
 
 
 MM = None
+# NC edits
 class UserGuide:
+    user_session: webserver.UserSession
     def __init__(self):
         self.last_prompts = []
         self.pMs = []
-        self.state = {}
-        self.optimizers = {}
+        self.user_session = None
         self.z = None
+        self.processed_layers = None
+        self.user_layers = None
         
-    def update_state(self, state):
-        self.state = state
-        
+    def update_state(self, user_session: webserver.UserSession):
+        self.user_session = user_session
+        if self.user_layers != user_session.layers:
+            self.user_layers = user_session.layers
+            self.processed_layers = [self.preprocess_layer(l) for l in user_session.layers]
+    
+    def preprocess_layer(self, layer: webserver.Layer):
+        text_emb = perceptor.encode_text(clip.tokenize(layer.prompt).to(device)).float()
+        def apply_loss(image_emb):
+            input_normed = F.normalize(image_emb.unsqueeze(1), dim=2)
+            embed_normed = F.normalize((text_emb).unsqueeze(0), dim=2)
+
+            dists = input_normed.sub(embed_normed).norm(dim=2).div(2).arcsin().pow(2).mul(2)
+            return dists.mean()
+
+        return apply_loss
+
+
     def apply_losses(self, iii):
-        anchors = self.state.get("anchors", [])
-        pms = self._get_prompts([x["text"] for x in anchors])
+        if not self.user_session:
+            return 0
+
         total = 0
-        for pm, anc in zip(pms, anchors):
-            loss = pm(iii)
-            total += loss
-            x, y = anc["pos"]
-            
-            def scale_grad(grad):
-                global MM
-                N, C, H, W = grad.shape
-                radius = 0.25
-                m = create_circular_mask(H, W, [x * W, y * H], radius=radius*W)
-                MM = m
-                m = torch.from_numpy(m).to(device)
-                
-                
-                return grad * m
-            hook = self.z.register_hook(scale_grad)
-            
-            # SLOW! requires a full backwards pass on CLIP image + text nets
-            # if we can collapse it to one backwards (mask?) it will speed things up dramatically
-            # We do this so we can scale the gradients WRT per-anchor location
+        for l in self.processed_layers:
+            loss = l(iii)
             loss.backward(retain_graph=True)
-            hook.remove()
+
+#         for pm, layer in zip(pms, layers):
+#             loss = pm(iii)
+#             total += loss
             
-#         total.backward(retain_graph=True)
+#             def scale_grad(grad):
+#                 global MM
+#                 N, C, H, W = grad.shape
+#                 radius = 0.25
+#                 m = create_circular_mask(H, W, [x * W, y * H], radius=radius*W)
+#                 MM = m
+#                 m = torch.from_numpy(m).to(device)
+                
+                
+#                 return grad * m
+#             # hook = self.z.register_hook(scale_grad)
+            
+#             # SLOW! requires a full backwards pass on CLIP image + text nets
+#             # if we can collapse it to one backwards (mask?) it will speed things up dramatically
+#             # We do this so we can scale the gradients WRT per-anchor location
+#             loss.backward(retain_graph=True)
+#             # hook.remove()
+            
+# #         total.backward(retain_graph=True)
         return 0 
     def init(self, z):
         self.z = z
@@ -476,9 +499,8 @@ class UserGuide:
 #         import ipdb; ipdb.set_trace()
         for prompt in prompts:
             print("Encoding", prompt)
-            txt, weight, stop = parse_prompt(prompt)
-            embed = perceptor.encode_text(clip.tokenize(txt).to(device)).float()
-            self.pMs.append(Prompt(embed, weight, stop).to(device))
+            embed = perceptor.encode_text(clip.tokenize(prompt).to(device)).float()
+            self.pMs.append(Prompt(embed).to(device))
         
         return self.pMs
 user_guided = UserGuide()
@@ -660,7 +682,7 @@ def ascend_txt():
         losses.append(prompt(iii))
     
     if webserver.us:
-        user_guided.update_state(webserver.us.state)
+        user_guided.update_state(webserver.us)
         user_guided.apply_losses(iii)
     else:
         user_guided.update({})

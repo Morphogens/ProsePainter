@@ -15,6 +15,9 @@ from fastapi import WebSocket
 from loguru import logger
 from torchvision.transforms import functional as TF
 
+import base64
+from PIL import Image
+
 app = fastapi.FastAPI()
 
 polygon_worker = ThreadPoolExecutor(1)
@@ -45,6 +48,31 @@ async def startup_event():
     global async_result
     async_result = AsyncResult()
 
+from dataclasses import dataclass
+
+@dataclass
+class Layer:
+    color: str
+    strength: int
+    prompt: str
+    img: np.ndarray
+
+
+def decode_layer(layer):
+    # decode image
+    x = layer["imageBase64"]
+    x = x.split(",")[-1]
+    x = base64.b64decode(x)
+    x = io.BytesIO(x)
+    x = Image.open(x)
+    x = np.array(x)
+
+    return Layer(
+        color=layer["color"],
+        strength=layer["strength"],
+        prompt=layer["prompt"],
+        img=x
+    )
 
 class UserSession:
     def __init__(
@@ -53,10 +81,10 @@ class UserSession:
     ):
         self.websocket = websocket
         self.coord = None
-        self.prompt = "3D bunny rabbit gray mesh rendered with maya zbrush"
         self.run_tick = True
         self.initialize = None
         self.state = {}
+        self.layers = []
 
     async def run(self):
         await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
@@ -68,21 +96,20 @@ class UserSession:
                 cmd = await self.websocket.receive_text()
                 cmd = json.loads(cmd)
                 
-                topic = cmd['topic']
-                data = cmd['data']
+                topic = cmd["topic"]
+                data = cmd["data"]
 
 
-                print("XXX Got cmd", cmd)
-                if topic == 'initialize':
+                print("XXX Got cmd", topic)
+                if topic == "initialize":
                     self.initialize = True
 
-                elif topic == 'state':
+                elif topic == "state":
                     self.state = data
                 
-                elif topic == "sculp_settings":
-                    if data:
-                        self.run_tick = data["sculp_enabled"]
-                        self.prompt = data["prompt"]
+                elif topic == "layers":
+                    self.layers = [decode_layer(l) for l in data]
+
         except:
             logger.exception("Error")
 

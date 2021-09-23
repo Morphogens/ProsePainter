@@ -19,4 +19,5 @@ mm_thread = Thread(target=mm_runner, daemon=True)
 mm_thread.start()
 
 print("Kicking off notebook")
+# input()
 import vqgan  # this is blocking!
