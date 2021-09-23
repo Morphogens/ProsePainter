@@ -7,8 +7,9 @@
     import { activeLayer, layers, undo, layerImages } from "@/drawing/stores";
     import { onMount, tick } from "svelte";
     import Indicator from "@/Indicator.svelte";
+    import { debounce } from "lodash";
     
-    let isOptimizing = false
+    let run = false
     let previewCanvas: HTMLCanvasElement;
     let previewCanvasCtx: CanvasRenderingContext2D;
 
@@ -35,16 +36,17 @@
     }
     
     function sendMessage(topic: string, data: any) {
+        console.log("Sending", data);
         if ($socketOpen) {
             socket.send(JSON.stringify({ topic, data }));
         }
     }
 
-    $: if (isOptimizing) {
-        const data = $layers.map(l => l.toJSON())        
-        sendMessage('setState', data)
+    $: if (run) {
+        sendMessage("state", { run });
+        sendMessage("layers", $layers.map(l => l.toJSON()))
     } else {
-        sendMessage('setState', 'paused')
+        sendMessage("state", { run })
     }
 
     let img : string | undefined = undefined
@@ -87,7 +89,7 @@
 >
     <div class="viewport" style="width:{width}px">
         <div id='content' style="width:{width}px;height:{height}px">
-            <img class="select-none" draggable="false" src={img} />
+            <img class="select-none h-64 w-64 absolute" draggable="false" src={img} />
             <canvas
                 id='previewCanvas'
                 bind:this={previewCanvas}
@@ -99,13 +101,13 @@
                 <DrawCanvas {width} {height} />
             {/if}
         </div>
-        {#if isOptimizing}
-            <button on:click={() => isOptimizing = false}> Stop </button>
+        {#if run}
+            <button on:click={() => run = false}> Stop </button>
         {:else}
             {#if $socketOpen}
-                <button on:click={() => isOptimizing = true}> Start </button>
+                <button on:click={() => run = true}> Start </button>
             {:else}
-                <button on:click={() => isOptimizing = true}> Start </button>
+                <button on:click={() => run = true}> Start </button>
                 <!-- <p> Socket not open </p> -->
             {/if}
         {/if}
