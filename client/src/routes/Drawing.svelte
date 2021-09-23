@@ -3,13 +3,13 @@
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import OptionPanel from "@/drawing/OptionPanel.svelte";
     import LayersPanel from "@/drawing/LayersPanel.svelte";
-    import { socket, socketOpen } from '@/lib/socket';
+    import { socket, socketOpen } from "@/lib/socket";
     import { activeLayer, layers, undo, layerImages } from "@/drawing/stores";
     import { onMount, tick } from "svelte";
     import Indicator from "@/Indicator.svelte";
     import { debounce } from "lodash";
-    
-    let run = false
+
+    let run = false;
     let previewCanvas: HTMLCanvasElement;
     let previewCanvasCtx: CanvasRenderingContext2D;
 
@@ -17,24 +17,24 @@
     const height = 512;
 
     async function drawBackground() {
-        await tick()
+        await tick();
         if (!previewCanvasCtx) {
-            return
+            return;
         }
-        previewCanvasCtx.clearRect(0, 0, width, height)
-        for (const layer of $layers.slice().reverse()){
-            const image = layerImages.get(layer)
+        previewCanvasCtx.clearRect(0, 0, width, height);
+        for (const layer of $layers.slice().reverse()) {
+            const image = layerImages.get(layer);
             // console.log(layer == $activeLayer, layer, $activeLayer);
             if (image && layer != $activeLayer) {
-                previewCanvasCtx.drawImage(image, 0, 0)
+                previewCanvasCtx.drawImage(image, 0, 0);
             }
         }
     }
 
     $: if ($layers || $activeLayer) {
-        drawBackground()
+        drawBackground();
     }
-    
+
     function sendMessage(topic: string, data: any) {
         console.log("Sending", data);
         if ($socketOpen) {
@@ -44,39 +44,44 @@
 
     $: if (run) {
         sendMessage("state", { run });
-        sendMessage("layers", $layers.map(l => l.toJSON()))
+        sendMessage(
+            "layers",
+            $layers.map((l) => l.toJSON())
+        );
     } else {
-        sendMessage("state", { run })
+        sendMessage("state", { run });
     }
 
-    let img : string | undefined = undefined
-    socket.addEventListener('message', (e) => {
+    let img: string | undefined = undefined;
+    socket.addEventListener("message", (e) => {
         const message = JSON.parse(e.data);
         if (message.image) {
-            img = 'data:text/plain;base64,' + message.image
+            img = "data:text/plain;base64," + message.image;
         }
     });
-    
+
     function onKeyDown(e: KeyboardEvent) {
-        if (e.code === 'KeyZ' && (e.metaKey === true || e.ctrlKey === true)) {
+        if (e.code === "KeyZ" && (e.metaKey === true || e.ctrlKey === true)) {
             if (e.shiftKey) {
-                undo.redo()
+                undo.redo();
             } else {
-                undo.undo()
+                undo.undo();
             }
         }
     }
     function onKeyUp(e: KeyboardEvent) {}
     onMount(() => {
         previewCanvasCtx = previewCanvas.getContext("2d");
-    })    
+    });
+    $: console.log($activeLayer);
+    
 </script>
 
-<svelte:window  on:keydown={onKeyDown} on:keyup={onKeyUp} />
+<svelte:window on:keydown={onKeyDown} on:keyup={onKeyUp} />
 <div class="flex items-center px-2 py-1">
     <Indicator state={$socketOpen} />
-    <div class="ml-1">Connection is {$socketOpen ? 'open' : 'closed'}</div>
-  </div>
+    <div class="ml-1">Connection is {$socketOpen ? "open" : "closed"}</div>
+</div>
 {#if $activeLayer}
     <OptionPanel />
 {/if}
@@ -88,40 +93,57 @@
     rangeY={[-256, 256]}
 >
     <div class="viewport" style="width:{width}px">
-        <div id='content' style="width:{width}px;height:{height}px">
-            <img class="select-none h-64 w-64 absolute" draggable="false" src={img} />
+        <div id="content" style="width:{width}px;height:{height}px">
+            {#if img}
+                <img
+                    id="previewImage"
+                    class="select-none h-64 w-64 absolute"
+                    draggable="false"
+                    src={img}
+                    alt="previewImage"
+                    style="width:{width}px;height:{height}px"
+                />
+            {/if}
             <canvas
-                id='previewCanvas'
+                id="previewCanvas"
                 bind:this={previewCanvas}
                 {width}
                 {height}
-                style="opacity:{$activeLayer ? .33 : .33};"
+                style="opacity:{$activeLayer ? 0.33 : 0.33};"
+                class:hidden={!$activeLayer}
             />
             {#if $activeLayer}
                 <DrawCanvas {width} {height} />
             {/if}
         </div>
-        {#if run}
-            <button on:click={() => run = false}> Stop </button>
-        {:else}
-            {#if $socketOpen}
-                <button on:click={() => run = true}> Start </button>
+        <div id="canvasButtons">
+            {#if run}
+                <button on:click={() => (run = false)}> Stop </button>
+            {:else if $socketOpen}
+                <button on:click={() => (run = true)}> Start </button>
             {:else}
-                <button on:click={() => run = true}> Start </button>
+                <button on:click={() => (run = true)}> Start </button>
                 <!-- <p> Socket not open </p> -->
             {/if}
-        {/if}
+            <button on:click={() => sendMessage("state", { reset: true })}>
+                Reset
+            </button>
+        </div>
     </div>
 </InfiniteViewer>
 
 <style>
     #previewCanvas {
-        top:0px;
-        position:absolute;
-        pointer-events:none;
+        top: 0px;
+        position: absolute;
+        pointer-events: none;
     }
     #content {
         border-bottom: 1px dashed;
+    }
+    #canvasButtons {
+        display: flex;
+        justify-content: space-between;
     }
     :global(.viewer) {
         border: 1px solid black;
@@ -135,5 +157,8 @@
         margin: 100px;
         background: white;
         box-shadow: -1px 4px 8px 0px rgba(0, 0, 0, 0.61);
+    }
+    .hidden {
+        display: none;
     }
 </style>

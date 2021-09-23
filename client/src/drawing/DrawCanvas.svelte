@@ -34,7 +34,6 @@
         const imageBase64 = canvas.toDataURL('image/png')
         const image = new Image(width, height)
         image.src = imageBase64
-
         $activeLayer.set('imageBase64', imageBase64)
     }
     
