@@ -24,6 +24,7 @@
         border-top-right-radius: 4px;
         border-bottom-right-radius: 4px;
         align-items: center;
+        border: 1px solid;
     }
     button > img {
         width: 50px;

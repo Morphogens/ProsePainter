@@ -92,29 +92,33 @@
     rangeX={[-256, 256]}
     rangeY={[-256, 256]}
 >
-    <div class="viewport" style="width:{width}px">
-        <div id="content" style="width:{width}px;height:{height}px">
-            {#if img}
-                <img
-                    id="previewImage"
-                    class="select-none h-64 w-64 absolute"
-                    draggable="false"
-                    src={img}
-                    alt="previewImage"
-                    style="width:{width}px;height:{height}px"
+    <div class="viewport" style="width:{2*width}px">
+        <div id="content" style="width:{2*width}px;height:{height}px">
+            <div style='border-right:1px solid;width:{width}px'>
+                <canvas
+                    id="previewCanvas"
+                    bind:this={previewCanvas}
+                    {width}
+                    {height}
+                    style="opacity:{$activeLayer ? 0.33 : 1.0};"
                 />
-            {/if}
-            <canvas
-                id="previewCanvas"
-                bind:this={previewCanvas}
-                {width}
-                {height}
-                style="opacity:{$activeLayer ? 0.33 : 0.33};"
-                class:hidden={!$activeLayer}
-            />
-            {#if $activeLayer}
-                <DrawCanvas {width} {height} />
-            {/if}
+                {#if $activeLayer}
+                    <DrawCanvas {width} {height} />
+                {/if}
+            </div>
+            <div>
+                {#if img}
+                    <img
+                        id="previewImage"
+                        class="select-none h-64 w-64 absolute"
+                        draggable="false"
+                        src={img}
+                        alt="previewImage"
+                        style="width:{width}px;height:{height}px"
+                    />
+                {/if}
+            </div>
+
         </div>
         <div id="canvasButtons">
             {#if run}
@@ -139,6 +143,7 @@
         pointer-events: none;
     }
     #content {
+        display: flex;
         border-bottom: 1px dashed;
     }
     #canvasButtons {
