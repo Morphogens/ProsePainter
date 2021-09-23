@@ -355,7 +355,8 @@ args = argparse.Namespace(
     step_size=0.1,
     
     # cutouts / crops
-    cutn=64,
+    cutn=32,
+    # cutn=64,
     cut_pow=1,
 
     # display
@@ -424,6 +425,29 @@ perceptor = clip.load(args.clip_model, jit=False)[0].eval().requires_grad_(False
 
 MM = None
 # NC edits
+class LayerLoss:
+    def __init__(self, layer: webserver.Layer):
+        self.text_emb = perceptor.encode_text(clip.tokenize(layer.prompt).to(device)).float()
+
+        # get alpha mask
+        mask = torch.from_numpy(layer.img[:, :, -1]).to(device)
+        mask[mask > 0] = 1
+        mask = mask.float()
+        self.mask = mask
+
+    def __call__(self, image):
+        N, C, H, W = image.shape
+        mask = F.interpolate(self.mask[None, None], (H, W), mode="bilinear")
+        merged = image * mask #+ image.detach() * (1-mask)
+        cutouts = make_cutouts(merged)
+
+        image_emb = perceptor.encode_image(normalize(cutouts)).float()
+
+        input_normed = F.normalize(image_emb.unsqueeze(1), dim=2)
+        embed_normed = F.normalize((self.text_emb).unsqueeze(0), dim=2)
+
+        dists = input_normed.sub(embed_normed).norm(dim=2).div(2).arcsin().pow(2).mul(2)
+        return dists.mean()
 class UserGuide:
     user_session: webserver.UserSession
     def __init__(self):
@@ -431,34 +455,44 @@ class UserGuide:
         self.pMs = []
         self.user_session = None
         self.z = None
-        self.processed_layers = None
+        self.layers_loss = None
         self.user_layers = None
         
     def update_state(self, user_session: webserver.UserSession):
         self.user_session = user_session
         if self.user_layers != user_session.layers:
             self.user_layers = user_session.layers
-            self.processed_layers = [self.preprocess_layer(l) for l in user_session.layers]
+            self.layers_loss = [LayerLoss(l) for l in user_session.layers]
     
-    def preprocess_layer(self, layer: webserver.Layer):
-        text_emb = perceptor.encode_text(clip.tokenize(layer.prompt).to(device)).float()
-        def apply_loss(image_emb):
-            input_normed = F.normalize(image_emb.unsqueeze(1), dim=2)
-            embed_normed = F.normalize((text_emb).unsqueeze(0), dim=2)
+    # def preprocess_layer(self, layer: webserver.Layer):
+    #     text_emb = perceptor.encode_text(clip.tokenize(layer.prompt).to(device)).float()
 
-            dists = input_normed.sub(embed_normed).norm(dim=2).div(2).arcsin().pow(2).mul(2)
-            return dists.mean()
+    #     # get alpha mask
+    #     mask = torch.from_numpy(layer.img[:, :, -1]).to(device)
+    #     mask[mask > 0] = 1
+    #     mask = mask.float()
 
-        return apply_loss
+    #     def apply_loss(image, image_emb):
+    #         input_normed = F.normalize(image_emb.unsqueeze(1), dim=2)
+    #         embed_normed = F.normalize((text_emb).unsqueeze(0), dim=2)
+
+    #         dists = input_normed.sub(embed_normed).norm(dim=2).div(2).arcsin().pow(2).mul(2)
+    #         return dists.mean()
+
+    #     return apply_loss
 
 
-    def apply_losses(self, iii):
+    def apply_losses(self, z, out):
         if not self.user_session:
             return 0
 
         total = 0
-        for l in self.processed_layers:
-            loss = l(iii)
+        # cutouts = make_cutouts(out)
+
+        # image_emb = perceptor.encode_image(normalize(cutouts)).float()
+        loss = 0
+        for l in self.layers_loss:
+            loss = l(out)
             loss.backward(retain_graph=True)
 
 #         for pm, layer in zip(pms, layers):
@@ -654,9 +688,6 @@ def ascend_txt():
 #         TF.to_pil_image(out_a[0].cpu()).save(f'./content/vids/{vid_index}.png')
 #         vid_index += 1
     webserver.process_step(out.cpu())
-    cutouts = make_cutouts(out)
-
-    iii = perceptor.encode_image(normalize(cutouts)).float()
 
     losses = []
 
@@ -678,12 +709,12 @@ def ascend_txt():
               print(f"updated mse weight: {mse_weight}")
     
     
-    for prompt in pMs:
-        losses.append(prompt(iii))
+    # for prompt in pMs:
+    #     losses.append(prompt(iii))
     
     if webserver.us:
         user_guided.update_state(webserver.us)
-        user_guided.apply_losses(iii)
+        user_guided.apply_losses(z, out)
     else:
         user_guided.update({})
         
