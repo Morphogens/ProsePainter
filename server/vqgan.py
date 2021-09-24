@@ -460,7 +460,7 @@ class UserGuide:
         
     def update_state(self, user_session: webserver.UserSession):
         self.user_session = user_session
-        if self.user_layers != user_session.layers:
+        if self.user_layers is not user_session.layers:
             self.user_layers = user_session.layers
             self.layers_loss = [LayerLoss(l) for l in user_session.layers]
     
@@ -491,9 +491,20 @@ class UserGuide:
 
         # image_emb = perceptor.encode_image(normalize(cutouts)).float()
         loss = 0
-        for l in self.layers_loss:
+        for i, l in enumerate(self.layers_loss):
+            def scale_grad(grad):
+                N,C,H,W = grad.shape
+                m = l.mask.clone()
+                for covering in self.layers_loss[i+1:]:
+                    m -= covering.mask
+                    m.clamp_(0, 1)
+
+                return grad * F.interpolate(m[None, None], (H, W))
+
+            hook = z.register_hook(scale_grad)
             loss = l(out)
             loss.backward(retain_graph=True)
+            hook.remove()
 
 #         for pm, layer in zip(pms, layers):
 #             loss = pm(iii)

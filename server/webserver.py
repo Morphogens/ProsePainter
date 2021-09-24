@@ -61,6 +61,9 @@ class Layer:
 def decode_layer(layer):
     # decode image
     x = layer["imageBase64"]
+    if not x:
+        return None
+        
     x = x.split(",")[-1]
     x = base64.b64decode(x)
     x = io.BytesIO(x)
@@ -109,6 +112,7 @@ class UserSession:
                 
                 elif topic == "layers":
                     self.layers = [decode_layer(l) for l in data]
+                    self.layers = [x for x in self.layers if x]
 
         except:
             logger.exception("Error")
