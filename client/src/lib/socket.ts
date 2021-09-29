@@ -2,7 +2,11 @@ import { writable, readable, get } from 'svelte/store'
 
 // export const socket = new WebSocket('ws://192.168.193.42:9999')
 // export const socket = new WebSocket('ws://localhost:8005/ws')
-export let socket = new WebSocket('ws://morphogen-1:8005/ws')
+
+const serverIP = "localhost";
+const apiPort = "8000";
+const serverURL = `ws://${serverIP}:${apiPort}/ws`;
+export let socket = new WebSocket(serverURL)
 
 // preserve the socket across HMR updates
 if (import.meta.hot) {
