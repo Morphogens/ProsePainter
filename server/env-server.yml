@@ -1,0 +1,18 @@
+name: nuclear
+channels:
+  - conda-forge
+  - anaconda
+  - pytorch
+  - defaults
+dependencies:
+  - cudatoolkit=11.0.221
+  - pytorch=1.7.1
+  - torchvision=0.8.2
+  - imageio=2.9.0
+  - python=3.7.9
+  - pip=21.0.1
+  - pip:
+    - fastapi==0.68.1
+    - uvicorn==0.15.0
+    - loguru==0.5.3
+    - hugging-gan-test
