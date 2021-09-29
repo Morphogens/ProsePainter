@@ -1,21 +1,19 @@
-
 import json
+import io
+import base64
+import asyncio
 from typing import *
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
-import io
-import base64
 import torch
-import asyncio
 import fastapi
 import uvicorn
 import numpy as np
 from fastapi import WebSocket
 from loguru import logger
 from torchvision.transforms import functional as TF
-
-import base64
 from PIL import Image
 
 app = fastapi.FastAPI()
@@ -48,7 +46,6 @@ async def startup_event():
     global async_result
     async_result = AsyncResult()
 
-from dataclasses import dataclass
 
 @dataclass
 class Layer:
@@ -63,19 +60,18 @@ def decode_layer(layer):
     x = layer["imageBase64"]
     if not x:
         return None
-        
+
     x = x.split(",")[-1]
     x = base64.b64decode(x)
     x = io.BytesIO(x)
     x = Image.open(x)
     x = np.array(x)
 
-    return Layer(
-        color=layer["color"],
-        strength=layer["strength"],
-        prompt=layer["prompt"],
-        img=x
-    )
+    return Layer(color=layer["color"],
+                 strength=layer["strength"],
+                 prompt=layer["prompt"],
+                 img=x)
+
 
 class UserSession:
     def __init__(
@@ -90,7 +86,9 @@ class UserSession:
         self.layers = []
 
     async def run(self):
-        await asyncio.wait([self.listen_loop(), self.send_loop()], return_when=asyncio.FIRST_COMPLETED)
+        await asyncio.wait(
+            [self.listen_loop(), self.send_loop()],
+            return_when=asyncio.FIRST_COMPLETED)
         self.run_tick = False  # stop running optimization if we die
 
     async def listen_loop(self):
@@ -98,10 +96,9 @@ class UserSession:
             while True:
                 cmd = await self.websocket.receive_text()
                 cmd = json.loads(cmd)
-                
+
                 topic = cmd["topic"]
                 data = cmd["data"]
-
 
                 print("XXX Got cmd", topic)
                 if topic == "initialize":
@@ -109,7 +106,7 @@ class UserSession:
 
                 elif topic == "state":
                     self.state = data
-                
+
                 elif topic == "layers":
                     self.layers = [decode_layer(l) for l in data]
                     self.layers = [x for x in self.layers if x]
@@ -124,20 +121,22 @@ class UserSession:
             await self.websocket.send_text(model)
 
 
-
 us: Optional[UserSession] = None
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global us
     await websocket.accept()
     new_session = UserSession(websocket)
     us = new_session
-    
+
     # optimization_worker.user_session = us
     await new_session.run()
 
 
-def process_step(output: Union[np.ndarray, torch.Tensor], loss_dict: Dict[str, float]={}):
+def process_step(output: Union[np.ndarray, torch.Tensor],
+                 loss_dict: Dict[str, float] = {}):
     print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
     start = datetime.now()
 
@@ -161,12 +160,9 @@ def process_step(output: Union[np.ndarray, torch.Tensor], loss_dict: Dict[str, f
     print("Took", dur.total_seconds())
 
 
-#%%
 def on_update(*args, **kwargs):
     logger.info("XXX enqueuing preprocess")
     polygon_worker.submit(process_step, *args, **kwargs)
-
-
 
 
 def main():
@@ -184,7 +180,9 @@ def main():
         loop=loop,
     )
 
+
 import sys
+
 logger.remove()
 logger.add(sys.stderr, level="INFO")
 
