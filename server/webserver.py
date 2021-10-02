@@ -55,7 +55,7 @@ class Layer:
     img: np.ndarray
 
 
-def decode_layer(layer):
+def decode_layer(layer, ):
     # decode image
     x = layer["imageBase64"]
     if not x:
@@ -67,10 +67,12 @@ def decode_layer(layer):
     x = Image.open(x)
     x = np.array(x)
 
-    return Layer(color=layer["color"],
-                 strength=layer["strength"],
-                 prompt=layer["prompt"],
-                 img=x)
+    return Layer(
+        color=layer["color"],
+        strength=layer["strength"],
+        prompt=layer["prompt"],
+        img=x,
+    )
 
 
 class UserSession:
@@ -87,8 +89,12 @@ class UserSession:
 
     async def run(self):
         await asyncio.wait(
-            [self.listen_loop(), self.send_loop()],
-            return_when=asyncio.FIRST_COMPLETED)
+            [
+                self.listen_loop(),
+                self.send_loop(),
+            ],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
         self.run_tick = False  # stop running optimization if we die
 
     async def listen_loop(self):
@@ -125,18 +131,22 @@ us: Optional[UserSession] = None
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket, ):
     global us
     await websocket.accept()
     new_session = UserSession(websocket)
     us = new_session
 
+    print("XXX: user session created")
+
     # optimization_worker.user_session = us
     await new_session.run()
 
 
-def process_step(output: Union[np.ndarray, torch.Tensor],
-                 loss_dict: Dict[str, float] = {}):
+def process_step(
+    output: Union[np.ndarray, torch.Tensor],
+    loss_dict: Dict[str, float] = {},
+):
     print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
     start = datetime.now()
 
@@ -147,7 +157,10 @@ def process_step(output: Union[np.ndarray, torch.Tensor],
 
     logger.debug("XXX dur")
     encoded = base64.standard_b64encode(buffer.getvalue()).decode()
-    result = dict(image=encoded, **loss_dict)
+    result = dict(
+        image=encoded,
+        **loss_dict,
+    )
 
     if async_result:
         async_result.set(json.dumps(result))

@@ -15,4 +15,5 @@ dependencies:
     - fastapi==0.68.1
     - uvicorn==0.15.0
     - loguru==0.5.3
+    - websockets==10.0
     - hugging-gan-test
