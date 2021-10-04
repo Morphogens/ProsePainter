@@ -2,6 +2,7 @@ import json
 import io
 import base64
 import asyncio
+import threading
 from typing import *
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -89,7 +90,7 @@ class UserSession:
         self.layer_list = []
 
         self.stop_generation = False
-        self.max_gen_iterations = 200
+        self.max_gen_iterations = 16
 
         self.layered_generator = LayeredGenerator(layer_list=self.layer_list)
 
@@ -102,6 +103,18 @@ class UserSession:
             return_when=asyncio.FIRST_COMPLETED,
         )
         self.run_tick = False  # stop running optimization if we die
+
+    def optimize(self, data_list):
+        self.layer_list = [decode_layer(data_dict) for data_dict in data_list]
+        self.layer_list = [layer for layer in self.layer_list if layer]
+
+        self.layered_generator.reset_layers(self.layer_list)
+
+        counter = 0
+        while not self.stop_generation and counter < self.max_gen_iterations:
+            counter += 1
+            output, loss_dict, state = self.layered_generator.optimize()
+            on_update(output, loss_dict)
 
     async def listen_loop(self):
         try:
@@ -118,22 +131,11 @@ class UserSession:
 
                 elif topic == "state":
                     self.state = data_list
+                    self.stop_generation = True
 
                 elif topic == "start-generation":
-                    self.layer_list = [
-                        decode_layer(data_dict) for data_dict in data_list
-                    ]
-                    self.layer_list = [
-                        layer for layer in self.layer_list if layer
-                    ]
-
-                    self.layered_generator.reset_layers(self.layer_list)
-
-                    counter = 0
-                    while not self.stop_generation or counter > self.max_gen_iterations:
-                        counter += 1
-                        output, loss_dict, state = self.layered_generator()
-                        process_step(output, loss_dict)
+                    self.stop_generation = False
+                    self.optimize(data_list)
 
                     self.stop_generation = False
 
@@ -171,7 +173,9 @@ def process_step(
     loss_dict: Dict[str, float] = {},
 ):
 
-    print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
+    logger.debug("loss",
+                 " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
+
     loss_dict = {k: float(v.detach().cpu()) for k, v in loss_dict.items()}
     start = datetime.now()
 
