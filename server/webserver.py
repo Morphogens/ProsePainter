@@ -16,10 +16,11 @@ from loguru import logger
 from torchvision.transforms import functional as TF
 from PIL import Image
 
+from vqgan import LayeredGenerator
+
 app = fastapi.FastAPI()
 
-polygon_worker = ThreadPoolExecutor(1)
-inferece_worker = ThreadPoolExecutor(1)
+update_worker = ThreadPoolExecutor(1)
 
 
 class AsyncResult:
@@ -55,9 +56,9 @@ class Layer:
     img: np.ndarray
 
 
-def decode_layer(layer, ):
+def decode_layer(data_dict, ):
     # decode image
-    x = layer["imageBase64"]
+    x = data_dict["imageBase64"]
     if not x:
         return None
 
@@ -68,9 +69,9 @@ def decode_layer(layer, ):
     x = np.array(x)
 
     return Layer(
-        color=layer["color"],
-        strength=layer["strength"],
-        prompt=layer["prompt"],
+        color=data_dict["color"],
+        strength=data_dict["strength"],
+        prompt=data_dict["prompt"],
         img=x,
     )
 
@@ -85,7 +86,12 @@ class UserSession:
         self.run_tick = True
         self.initialize = None
         self.state = {}
-        self.layers = []
+        self.layer_list = []
+
+        self.stop_generation = False
+        self.max_gen_iterations = 200
+
+        self.layered_generator = LayeredGenerator(layer_list=self.layer_list)
 
     async def run(self):
         await asyncio.wait(
@@ -104,27 +110,44 @@ class UserSession:
                 cmd = json.loads(cmd)
 
                 topic = cmd["topic"]
-                data = cmd["data"]
+                data_list = cmd["data"]
 
                 print("XXX Got cmd", topic)
                 if topic == "initialize":
                     self.initialize = True
 
                 elif topic == "state":
-                    self.state = data
+                    self.state = data_list
 
-                elif topic == "layers":
-                    self.layers = [decode_layer(l) for l in data]
-                    self.layers = [x for x in self.layers if x]
+                elif topic == "start-generation":
+                    self.layer_list = [
+                        decode_layer(data_dict) for data_dict in data_list
+                    ]
+                    self.layer_list = [
+                        layer for layer in self.layer_list if layer
+                    ]
+
+                    self.layered_generator.reset_layers(self.layer_list)
+
+                    counter = 0
+                    while not self.stop_generation or counter > self.max_gen_iterations:
+                        counter += 1
+                        output, loss_dict, state = self.layered_generator()
+                        process_step(output, loss_dict)
+
+                    self.stop_generation = False
+
+                elif topic == "stop-generation":
+                    self.stop_generation = True
 
         except:
             logger.exception("Error")
 
     async def send_loop(self):
         while True:
-            model = await async_result.wait()
-            print(f"XXX WS sending model, {len(model)//1024}kb")
-            await self.websocket.send_text(model)
+            results = await async_result.wait()
+            print(f"XXX WS sending results, {results}")
+            await self.websocket.send_text(results)
 
 
 us: Optional[UserSession] = None
@@ -147,7 +170,9 @@ def process_step(
     output: Union[np.ndarray, torch.Tensor],
     loss_dict: Dict[str, float] = {},
 ):
+
     print("loss", " ".join(f"{k}: {v:.4f}" for k, v in loss_dict.items()))
+    loss_dict = {k: float(v.detach().cpu()) for k, v in loss_dict.items()}
     start = datetime.now()
 
     logger.debug("to PIL")
@@ -175,7 +200,7 @@ def process_step(
 
 def on_update(*args, **kwargs):
     logger.info("XXX enqueuing preprocess")
-    polygon_worker.submit(process_step, *args, **kwargs)
+    update_worker.submit(process_step, *args, **kwargs)
 
 
 def main():

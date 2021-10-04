@@ -45,7 +45,7 @@
     $: if (run) {
         sendMessage("state", { run });
         sendMessage(
-            "layers",
+            "start-generation",
             $layers.map((l) => l.toJSON())
         );
     } else {
