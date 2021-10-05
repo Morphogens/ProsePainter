@@ -9,6 +9,9 @@ __pycache__/
 *.zip
 *.pth
 
+*.jpg
+*.png
+
 .vscode/settings.json
 
 # C extensions
