@@ -10,11 +10,11 @@ from server.vqgan import Layer, LayeredGenerator
 
 iters_per_mask = 100
 num_optimizations = 1
-lr = 0.3
-target_img_size = (256, 256)
+lr = 0.5
+target_img_size = (128, 128)
 
-cond_img = Image.open('server/cond.png').resize(target_img_size)
-# cond_img = None
+# cond_img = Image.open('server/cond.png').resize(target_img_size)
+cond_img = None
 
 style_prompt = " 4k trending on artstation"
 
@@ -23,14 +23,14 @@ background_prompt = "Blue sea"
 
 mask_list = [
     background_mask,
-    np.array(Image.open("server/mask1.png").resize(target_img_size)),
-    np.array(Image.open("server/mask2.png").resize(target_img_size)),
+    # np.array(Image.open("server/mask1.png").resize(target_img_size)),
+    # np.array(Image.open("server/mask2.png").resize(target_img_size)),
 ]
 
 prompt_list = [
     background_prompt,
-    "Green grass",
-    "A cute dog",
+    # "Green grass",
+    # "A cute dog",
 ]
 
 prompt_list = [prompt + style_prompt for prompt in prompt_list]
@@ -61,19 +61,11 @@ layered_generator = LayeredGenerator(
     cond_img=cond_img,
 )
 
+# _ = layered_generator.optimize_scaled(
+#     scale_factor=2,
+#     num_iters=1000,
+# )
+
 for optim_step in range(num_optimizations):
     img_rec, loss_dict, _state = layered_generator.optimize(
         iters_per_mask=iters_per_mask, )
-
-    # dirty_rec_img = torchvision.transforms.ToPILImage(mode='RGB')(img_rec[0])
-    # layered_generator.cond_img = dirty_rec_img
-    # layered_generator.reset_gen_latent()
-
-# for step in range(num_optimizations):
-#     img_rec, loss_dict, _state = layered_generator.optimize(iters_per_mask=1, )
-
-#     for key, value in loss_dict.items():
-#         print(key, "loss -->", value)
-
-# rec_img_pil = torchvision.transforms.ToPILImage(mode='RGB')(rec_img[0])
-# rec_img_pil.save(f"{step}.jpg")

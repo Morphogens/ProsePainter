@@ -1,3 +1,4 @@
+import random
 import time
 import logging
 
@@ -6,6 +7,7 @@ import torchvision
 import numpy as np
 from PIL import Image
 from bigotis.models import TamingDecoder, Aphantasia
+from torchvision.transforms.functional import scale
 
 torch.manual_seed(123)
 
@@ -106,6 +108,7 @@ class LayeredGenerator(torch.nn.Module):
             betas=(0.9, 0.999),
             weight_decay=0.1,
         )
+
 
     def optimize(
         self,
@@ -228,3 +231,105 @@ class LayeredGenerator(torch.nn.Module):
 
         state = None
         return img_rec, loss_dict, state
+
+    def optimize_scaled(
+        self,
+        scale_factor=4,
+        num_iters=200,
+    ):
+        scaled_gen_latents = model.get_random_latents(
+            target_img_height=self.target_img_size[0] * scale_factor,
+            target_img_width=self.target_img_size[1] * scale_factor,
+        ).to(DEVICE)
+
+        for idx in range(num_iters):
+            x_init = random.randint(
+                0, self.target_img_size[0] // 16 * (scale_factor - 1))
+            y_init = random.randint(
+                0, self.target_img_size[1] // 16 * (scale_factor - 1))
+
+            crop_gen_latents = scaled_gen_latents[:, :, x_init:x_init +
+                                                  self.target_img_size[0] //
+                                                  16, y_init:y_init +
+                                                  self.target_img_size[1] //
+                                                  16, ]
+
+            self.gen_latents.data = crop_gen_latents
+
+            loss = 0
+            img_rec = model.get_img_from_latents(self.gen_latents)
+
+            torchvision.transforms.ToPILImage(mode='RGB')(
+                img_rec[0]).save(f"{idx}-crop.jpg")
+            # torchvision.transforms.ToPILImage(mode="L")(
+            #     mask[0]).save("mask.jpg")
+            # torchvision.transforms.ToPILImage(mode="RGB")(
+            #     merged[0]).save("masked.jpg")
+            # torchvision.transforms.ToPILImage(mode="RGB")(
+            #     self.init_img[0]).save("init_img.jpg")
+
+            img_rec_aug = model.augment(img_rec, )
+            img_latents = model.get_clip_img_encodings(
+                img_rec_aug, ).to(DEVICE)
+
+            # clip_loss = (self.layer_list[0].text_latents - img_latents).norm(
+            #     dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+
+            clip_loss = -10 * torch.cosine_similarity(
+                self.layer_list[0].text_latents,
+                img_latents,
+            ).mean()
+
+            # rand_img_reg = 10 * torch.nn.functional.mse_loss(
+            #     img_rec * (1 - mask),
+            #     self.init_img * (1 - mask),
+            # )
+
+            # rand_img_reg = torch.nn.functional.mse_loss(
+            #     img_rec * (1 - mask),
+            #     self.init_img * (1 - mask),
+            # )
+
+            # layer_loss = clip_loss + rand_img_reg
+
+            loss += clip_loss
+
+            # logging.info(f"RAND REG --> {rand_img_reg}")
+            # logging.info(f"CLIP LOSS --> {clip_loss}")
+            # logging.info(f"LAYER LOSS --> {layer_loss}")
+            logging.info(f"LOSS --> {loss} \n\n")
+
+            self.optimizer.zero_grad()
+            loss.backward(retain_graph=False, )
+            self.optimizer.step()
+
+            scaled_gen_latents[:, :,
+                               x_init:x_init + self.target_img_size[0] // 16,
+                               y_init:y_init + self.target_img_size[1] //
+                               16, ] = self.gen_latents.data.clone().detach()
+
+            final_img = torch.zeros(
+                (1, 3, self.target_img_size[0] * scale_factor,
+                 self.target_img_size[1] * scale_factor))
+
+            for y_scale in range(scale_factor):
+                for x_scale in range(scale_factor):
+                    img_y = self.target_img_size[0]
+                    img_x = self.target_img_size[1]
+                    embed_y = img_y // 16
+                    embed_x = img_x // 16
+
+                    with torch.no_grad():
+                        final_img[:, :, img_y * y_scale:img_y * (y_scale + 1),
+                                  img_x * x_scale:img_x *
+                                  (x_scale + 1)] = model.get_img_from_latents(
+                                      scaled_gen_latents[:, :, embed_y *
+                                                         y_scale:embed_y *
+                                                         (y_scale + 1),
+                                                         embed_x *
+                                                         x_scale:embed_x *
+                                                         (x_scale + 1)])
+            final_img_pil = torchvision.transforms.ToPILImage()(final_img[0])
+            final_img_pil.save(f"{idx}.png")
+
+        return img_rec, None, None
