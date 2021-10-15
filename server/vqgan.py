@@ -28,22 +28,83 @@ class Layer:
         self,
         prompt: str,
         mask: np.ndarray,
+        cond_img: np.ndarray,
+        lr: float,
         **kwargs,
     ):
+        self.mask = mask.to(DEVICE)
+        self.cond_img = cond_img.to(DEVICE)
+
         text_latents = model.get_clip_text_encodings(prompt, )
         text_latents = text_latents.detach()
         text_latents = text_latents.to(DEVICE)
         self.text_latents = text_latents
 
-        # get alpha mask
-        # XXX: getting the first channel to create the mask, not the last one
-        mask = torch.from_numpy(mask[:, :, 0]).to(DEVICE)
-        mask = mask.detach()
-        mask[mask > 0] = 1
-        mask = mask.float()
-        self.mask = mask[None]
+        self.gen_latents = model.get_latents_from_img(cond_img, )
+        self.gen_latents = self.gen_latents.to(DEVICE)
+        self.gen_latents = self.gen_latents.detach().clone()
+        self.gen_latents.requires_grad = True
+        self.gen_latents = torch.nn.Parameter(self.gen_latents)
+
+        self.optimizer = torch.optim.AdamW(
+            params=[self.gen_latents],
+            lr=lr,
+            betas=(0.9, 0.999),
+            weight_decay=0.1,
+        )
 
         return
+
+    def optimize(self, ):
+        gen_img = model.get_img_from_latents(self.gen_latents, )
+
+        torchvision.transforms.ToPILImage(mode="L")(
+            self.mask[0]).save("mask.jpg")
+        torchvision.transforms.ToPILImage(mode="RGB")(
+            gen_img[0], ).save("gen_img.jpg")
+        torchvision.transforms.ToPILImage(mode="RGB")(
+            self.cond_img[0]).save("init_img.jpg")
+
+        img_aug = model.augment(gen_img, )
+        img_latents = model.get_clip_img_encodings(img_aug, ).to(DEVICE)
+
+        loss = (self.text_latents -
+                img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+
+        # loss = -10 * torch.cosine_similarity(
+        #     self.text_latents,
+        #     img_latents,
+        # ).mean()
+
+        logging.info(f"LOSS --> {loss} \n\n")
+
+        def scale_grad(grad, ):
+            grad_size = grad.shape[2:4]
+
+            grad_mask = torch.nn.functional.interpolate(
+                self.mask,
+                grad_size,
+                mode="bilinear",
+            )
+
+            if len(grad.shape) == 5:
+                grad_mask = grad_mask[..., None]
+
+            masked_grad = grad * grad_mask
+
+            return masked_grad
+
+        # hook = self.gen_latents.register_hook(scale_grad)
+        hook_img = gen_img.register_hook(scale_grad)
+
+        self.optimizer.zero_grad()
+        loss.backward(retain_graph=False, )
+        self.optimizer.step()
+
+        # hook.remove()
+        hook_img.remove()
+
+        return gen_img
 
 
 class LayeredGenerator(torch.nn.Module):
@@ -108,7 +169,6 @@ class LayeredGenerator(torch.nn.Module):
             betas=(0.9, 0.999),
             weight_decay=0.1,
         )
-
 
     def optimize(
         self,
