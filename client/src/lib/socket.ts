@@ -4,7 +4,7 @@ import { writable, readable, get } from 'svelte/store'
 // export const socket = new WebSocket('ws://localhost:8005/ws')
 
 const serverIP = "localhost";
-const apiPort = "8005";
+const apiPort = "8000";
 const serverURL = `ws://${serverIP}:${apiPort}/ws`;
 export let socket = new WebSocket(serverURL)
 
