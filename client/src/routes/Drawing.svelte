@@ -8,57 +8,16 @@
     import { onMount, tick } from "svelte";
     import Indicator from "@/Indicator.svelte";
     import { debounce } from "lodash";
-
-    let run = false;
-    let previewCanvas: HTMLCanvasElement;
-    let previewCanvasCtx: CanvasRenderingContext2D;
-
+    
     const width = 1024;
     const height = 512;
 
+    let run = false;
+    let showLayers = true;
     let backgroundImage = new Image()
 
-    let showLayers = true;
-
-    async function drawLayers(){
-        await tick();
-        if (!previewCanvasCtx) {
-            return;
-        }
-
-        for (const layer of $layers.slice()) {
-            const image = layerImages.get(layer);
-            // console.log(layer == $activeLayer, layer, $activeLayer);
-            if (image && layer != $activeLayer) {
-                console.log("DRAWING LAYER")
-                previewCanvasCtx.drawImage(image, 0, 0);
-            }
-        }
-    }
-
-    async function drawBackground() {
-        await tick();
-        if (!previewCanvasCtx) {
-            return;
-        }
-        if (backgroundImage.src == ""){
-            console.log("RESETTING BACKGROUND")
-            previewCanvasCtx.fillStyle = 'white';
-            previewCanvasCtx.fillRect(0, 0, width, height);
-            backgroundImage.src = previewCanvas.toDataURL()
-        } else {
-            console.log("DRAWING BACKGROUND")
-            previewCanvasCtx.drawImage(backgroundImage, 0, 0, width, height)
-        }
-
-    }
-
-    $: if ($layers || $activeLayer || showLayers) {
-        drawBackground();
-        if (showLayers){
-            drawLayers()
-        }
-    }
+    // let previewCanvas: HTMLCanvasElement;
+    // let previewCanvasCtx: CanvasRenderingContext2D;
 
     function sendMessage(topic: string, data: any) {
         console.log("Sending", data);
@@ -75,10 +34,9 @@
                     ...$activeLayer.toJSON(),
                     ...{'backgroundImg': backgroundImage.src},
                 },
-                // $layers.map((l) => l.toJSON())
             );
             run = true
-            $activeLayer.set(null)
+            // $activeLayer.set(null)
         } else {
             alert("AT LEAST ONE LAYER SHOULD BE SELECTED!")
             run = false
@@ -90,7 +48,6 @@
         run = false
     }
 
-    let img: string | undefined = undefined;
     socket.addEventListener("message", (e) => {
         console.log("MESSAGE RECEIVED!")
         
@@ -98,17 +55,10 @@
 
         if (message.image) {
             console.log("IMAGE RECEIVED!")
-            img = "data:text/plain;base64," + message.image;
+
+            let img = "data:text/plain;base64," + message.image;
             backgroundImage.src = img; 
 
-            drawBackground()
-
-            // let etaieagenew Image()
-            // image.src = img
-
-            // for (const layer of $layers.slice().reverse()) {
-            //     layerImages.set(layer, image);
-            // }
         } else{
             console.log("NO IMAGE RECEIVED!")
         }
@@ -126,10 +76,10 @@
 
     function onKeyUp(e: KeyboardEvent) {}
 
-    onMount(() => {
-        previewCanvasCtx = previewCanvas.getContext("2d");
-    });
-    $: console.log($activeLayer);
+    // onMount(() => {
+    //     previewCanvasCtx = previewCanvas.getContext("2d");
+    // });
+    // $: console.log($activeLayer);
     
 </script>
 
@@ -151,16 +101,17 @@
     <div class="viewport" style="width:{width}px">
         <div id="content" style="width:{width}px;height:{height}px">
             <div style='border-right:1px solid;width:{width}px'>
-                <canvas
+                <!-- <canvas
                     id="previewCanvas"
                     bind:this={previewCanvas}
                     {width}
                     {height}
-                    style="opacity:{$activeLayer || showLayers ? 0.5 : 1.};"
-                />
-                {#if $activeLayer}
-                    <DrawCanvas {width} {height} />
-                {/if}
+                    style="opacity:{$activeLayer || showLayers ? 0 : 1};"
+                /> -->
+                <!-- {#if $activeLayer} -->
+                    <!-- <DrawCanvas {width} {height} /> -->
+                <!-- {/if} -->
+                <DrawCanvas {width} {height} {backgroundImage} {run} {showLayers}/>
             </div>
             <!-- <div>
                 {#if img}
