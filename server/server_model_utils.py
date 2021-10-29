@@ -60,12 +60,12 @@ class LayerOptimizer:
     def optimize(self, ):
         gen_img = model.get_img_from_latents(self.gen_latents, )
 
-        torchvision.transforms.ToPILImage(mode="L")(
-            self.mask[0]).save("generations/mask.jpg")
-        torchvision.transforms.ToPILImage(mode="RGB")(
-            gen_img[0], ).save("generations/gen_img.jpg")
-        torchvision.transforms.ToPILImage(mode="RGB")(
-            self.cond_img[0]).save("generations/init_img.jpg")
+        # torchvision.transforms.ToPILImage(mode="L")(
+        #     self.mask[0]).save("generations/mask.jpg")
+        # torchvision.transforms.ToPILImage(mode="RGB")(
+        #     gen_img[0], ).save("generations/gen_img.jpg")
+        # torchvision.transforms.ToPILImage(mode="RGB")(
+        #     self.cond_img[0]).save("generations/init_img.jpg")
 
         img_aug = model.augment(gen_img, )
         img_latents = model.get_clip_img_encodings(img_aug, ).to(DEVICE)

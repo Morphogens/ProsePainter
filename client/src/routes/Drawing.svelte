@@ -13,26 +13,51 @@
     let previewCanvas: HTMLCanvasElement;
     let previewCanvasCtx: CanvasRenderingContext2D;
 
-    const width = 512;
+    const width = 1024;
     const height = 512;
+
+    let backgroundImage = new Image()
+
+    let showLayers = true;
+
+    async function drawLayers(){
+        await tick();
+        if (!previewCanvasCtx) {
+            return;
+        }
+
+        for (const layer of $layers.slice()) {
+            const image = layerImages.get(layer);
+            // console.log(layer == $activeLayer, layer, $activeLayer);
+            if (image && layer != $activeLayer) {
+                console.log("DRAWING LAYER")
+                previewCanvasCtx.drawImage(image, 0, 0);
+            }
+        }
+    }
 
     async function drawBackground() {
         await tick();
         if (!previewCanvasCtx) {
             return;
         }
-        previewCanvasCtx.clearRect(0, 0, width, height);
-        for (const layer of $layers.slice().reverse()) {
-            const image = layerImages.get(layer);
-            // console.log(layer == $activeLayer, layer, $activeLayer);
-            if (image && layer != $activeLayer) {
-                previewCanvasCtx.drawImage(image, 0, 0);
-            }
+        if (backgroundImage.src == ""){
+            console.log("RESETTING BACKGROUND")
+            previewCanvasCtx.fillStyle = 'white';
+            previewCanvasCtx.fillRect(0, 0, width, height);
+            backgroundImage.src = previewCanvas.toDataURL()
+        } else {
+            console.log("DRAWING BACKGROUND")
+            previewCanvasCtx.drawImage(backgroundImage, 0, 0, width, height)
         }
+
     }
 
-    $: if ($layers || $activeLayer) {
+    $: if ($layers || $activeLayer || showLayers) {
         drawBackground();
+        if (showLayers){
+            drawLayers()
+        }
     }
 
     function sendMessage(topic: string, data: any) {
@@ -42,21 +67,50 @@
         }
     }
 
-    $: if (run) {
-        sendMessage("state", { run });
-        sendMessage(
-            "start-generation",
-            $layers.map((l) => l.toJSON())
-        );
-    } else {
-        sendMessage("state", { run });
+    function startGeneration(){
+        if ($activeLayer){
+            sendMessage(
+                "start-generation",
+                {
+                    ...$activeLayer.toJSON(),
+                    ...{'backgroundImg': backgroundImage.src},
+                },
+                // $layers.map((l) => l.toJSON())
+            );
+            run = true
+            $activeLayer.set(null)
+        } else {
+            alert("AT LEAST ONE LAYER SHOULD BE SELECTED!")
+            run = false
+        }
+    }
+
+    function stopGeneration(){
+        sendMessage("stop-generation", {});
+        run = false
     }
 
     let img: string | undefined = undefined;
     socket.addEventListener("message", (e) => {
-        const message = JSON.parse(e.data);
+        console.log("MESSAGE RECEIVED!")
+        
+        const message = JSON.parse(e.data)
+
         if (message.image) {
+            console.log("IMAGE RECEIVED!")
             img = "data:text/plain;base64," + message.image;
+            backgroundImage.src = img; 
+
+            drawBackground()
+
+            // let etaieagenew Image()
+            // image.src = img
+
+            // for (const layer of $layers.slice().reverse()) {
+            //     layerImages.set(layer, image);
+            // }
+        } else{
+            console.log("NO IMAGE RECEIVED!")
         }
     });
 
@@ -69,7 +123,9 @@
             }
         }
     }
+
     function onKeyUp(e: KeyboardEvent) {}
+
     onMount(() => {
         previewCanvasCtx = previewCanvas.getContext("2d");
     });
@@ -92,21 +148,21 @@
     rangeX={[-256, 256]}
     rangeY={[-256, 256]}
 >
-    <div class="viewport" style="width:{2*width}px">
-        <div id="content" style="width:{2*width}px;height:{height}px">
+    <div class="viewport" style="width:{width}px">
+        <div id="content" style="width:{width}px;height:{height}px">
             <div style='border-right:1px solid;width:{width}px'>
                 <canvas
                     id="previewCanvas"
                     bind:this={previewCanvas}
                     {width}
                     {height}
-                    style="opacity:{$activeLayer ? 0.33 : 1.0};"
+                    style="opacity:{$activeLayer || showLayers ? 0.5 : 1.};"
                 />
                 {#if $activeLayer}
                     <DrawCanvas {width} {height} />
                 {/if}
             </div>
-            <div>
+            <!-- <div>
                 {#if img}
                     <img
                         id="previewImage"
@@ -117,21 +173,26 @@
                         style="width:{width}px;height:{height}px"
                     />
                 {/if}
-            </div>
+            </div> -->
 
         </div>
         <div id="canvasButtons">
             {#if run}
-                <button on:click={() => (run = false)}> Stop </button>
+                <button on:click={() => (stopGeneration())}> Stop </button>
             {:else if $socketOpen}
-                <button on:click={() => (run = true)}> Start </button>
+                <button on:click={() => (startGeneration())}> Start </button>
             {:else}
-                <button on:click={() => (run = true)}> Start </button>
+                <button on:click={() => (alert("SOCKET NOT CONNECTED :("))}> Start </button>
                 <!-- <p> Socket not open </p> -->
             {/if}
-            <button on:click={() => sendMessage("state", { reset: true })}>
+            {#if showLayers}
+                <button on:click={() => (showLayers=false)}> Hide Layers </button>
+            {:else if $socketOpen}
+                <button on:click={() => (showLayers=true)}> Show Layers </button>
+            {/if}
+            <!-- <button on:click={() => sendMessage("state", { reset: true })}>
                 Reset
-            </button>
+            </button> -->
         </div>
     </div>
 </InfiniteViewer>

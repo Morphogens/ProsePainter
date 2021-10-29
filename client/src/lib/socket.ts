@@ -6,7 +6,15 @@ import { writable, readable, get } from 'svelte/store'
 const serverIP = "localhost";
 const apiPort = "8000";
 const serverURL = `ws://${serverIP}:${apiPort}/ws`;
-export let socket = new WebSocket(serverURL)
+
+export let socket = null
+
+function connect(){
+  console.log("ESTABLISHING WEBSOCKET CONNECTION WITH ", serverURL)
+  socket = new WebSocket(serverURL);
+}
+
+connect()
 
 // preserve the socket across HMR updates
 if (import.meta.hot) {
@@ -22,14 +30,25 @@ if (import.meta.hot) {
   
 export const socketOpen = readable(false, (set) => {    
     set(socket.readyState === WebSocket.OPEN);
-    socket.addEventListener('open', (event) => {
-        console.log('SOCKET CONNECTED');
+    socket.onopen = () => { 
+        console.log("WEBSOCKET CONNECTED!");
         set(true)
-    })    
-    socket.addEventListener('close', (event) => {
-        console.log('SOCKET DISCONNECTED');
-        set(false)
-    })
+    };
+
+    // socket.onclose = (closeEvent) => {
+    //     const reason = closeEvent.reason
+    //     set(false)
+    //     while (true) {
+    //       console.log('SOCKET IS CLOSED. RECONNECT WILL BE ATTEMPTED IN 1 SECOND.', reason);
+    //       setTimeout(function() {
+    //           connect();
+    //       }, 1000);
+
+    //       if (socket.readyState === WebSocket.OPEN){
+    //         break
+    //       };
+    //     }
+    // }
 })
 
 export function messageServer(message:string, data:any) {

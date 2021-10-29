@@ -10,6 +10,7 @@
         <img src="/eraser.png" />
     </button>
     <input type="range" orient="vertical" bind:value={$radius} min=1 max=96/>
+    {$radius}
 </div>
 
 <style>

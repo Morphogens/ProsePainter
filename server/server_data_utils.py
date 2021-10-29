@@ -18,6 +18,7 @@ def process_mask(
 
     mask = np.float32(np.array(mask_pil)) / 255.
     mask[mask < min_thold] = 0
+    mask[mask == 1] = 0
     mask[mask > 1] = 1
 
     return mask

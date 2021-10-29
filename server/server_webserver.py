@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import io
@@ -12,6 +13,7 @@ from dataclasses import dataclass
 
 import torch
 import fastapi
+import torchvision
 import uvicorn
 import numpy as np
 from fastapi import WebSocket
@@ -19,6 +21,8 @@ from loguru import logger
 from PIL import Image
 from torchvision.transforms import functional as TF
 
+sys.path.append("../")
+sys.path.append("../HuggingGAN")
 from server.server_data_utils import (
     process_mask,
     get_limits_from_mask,
@@ -26,9 +30,6 @@ from server.server_data_utils import (
     scale_crop,
     merge_gen_img_into_canvas,
 )
-
-sys.path.append("../")
-sys.path.append("../HuggingGAN")
 from server.server_model_utils import LayerOptimizer
 
 logging.basicConfig(
@@ -50,7 +51,7 @@ class AsyncResult:
         self,
         async_value,
     ):
-        self.async_value, = async_value
+        self.async_value = async_value
         self.async_event_loop.set()
 
     async def wait(self):
@@ -59,7 +60,7 @@ class AsyncResult:
 
         logging.info(f"ASYNC DATA RECEIVED!")
 
-        self.signal.clear()
+        self.async_event_loop.clear()
 
         return self.async_value
 
@@ -73,12 +74,12 @@ async def startup_event():
     async_result = AsyncResult()
 
 
-@dataclass
-class Layer:
-    color: str
-    strength: int
-    prompt: str
-    img: np.ndarray
+# @dataclass
+# class Layer:
+#     color: str
+#     strength: int
+#     prompt: str
+#     img: np.ndarray
 
 
 def decode_base64_img(base64_img, ):
@@ -86,9 +87,18 @@ def decode_base64_img(base64_img, ):
     img = base64.b64decode(base64_img)
     img = io.BytesIO(img)
     img = Image.open(img)
-    img = np.array(img)
 
     return img
+
+
+def pil_to_base64(img):
+    buffer = io.BytesIO()
+    img.save(buffer, "jpeg")
+
+    logger.debug("XXX dur")
+    encoded = base64.standard_b64encode(buffer.getvalue()).decode()
+
+    return encoded
 
 
 class UserSession:
@@ -100,8 +110,7 @@ class UserSession:
 
         self.user_id = str(self.websocket['client'][1])
 
-        self.layer_optimizer = LayerOptimizer()
-        self.stop_optimization = False
+        self.stop_generation = False
 
     async def run(self):
         await asyncio.wait(
@@ -117,8 +126,7 @@ class UserSession:
         prompt: str,
         canvas_img: str,
         mask: str,
-        lr: float = 0.05,
-        num_optim_steps: int = 16,
+        lr: float = 0.5,
         style_prompt: str = "",
         **kwargs,
     ):
@@ -132,10 +140,13 @@ class UserSession:
         )
 
         mask = decode_base64_img(mask)
+        mask.save(f"generations/{'_'.join(prompt.split())}_mask.png")
         mask = process_mask(
             mask,
             target_img_size,
         )
+        Image.fromarray(np.uint8(mask * 255)).save(
+            f"generations/{'_'.join(prompt.split())}_processed_mask.png")
 
         crop_limits = get_limits_from_mask(mask, )
 
@@ -159,23 +170,40 @@ class UserSession:
         )
 
         gen_img = None
-        for optim_step in range(num_optim_steps, ):
-            gen_img = layer.optimize_layer()
+        counter = 0
+        while not self.stop_generation:
+            gen_img = layer.optimize()
 
             # gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
             #     gen_img[0])
             # gen_img_pil.save(
             #     f"generations/{'_'.join(prompt.split())}_{optim_step}.jpg")
 
-            if self.stop_layer_optim:
-                break
+            updated_canvas = merge_gen_img_into_canvas(
+                gen_img,
+                mask_crop,
+                canvas_img,
+                crop_limits,
+            )
 
-        updated_canvas = merge_gen_img_into_canvas(
-            gen_img,
-            mask_crop,
-            canvas_img,
-            crop_limits,
-        )
+            updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas *
+                                                          255))
+            os.makedirs(
+                "generations",
+                exist_ok=True,
+            )
+            updated_canvas_pil.save(
+                f"generations/canvas_{'_'.join(prompt.split())}_{counter}.jpg")
+            counter += 1
+
+            updated_canvas_uri = pil_to_base64(updated_canvas_pil)
+
+            async_result.set_async_value({
+                "image": updated_canvas_uri,
+            })
+
+            if self.stop_generation:
+                break
 
         # Image.fromarray(np.uint8(updated_canvas * 255)).save(
         #     f"generations/final_{'_'.join(prompt.split())}_{optim_step}.jpg")
@@ -185,31 +213,40 @@ class UserSession:
     async def listen_loop(self, ):
         try:
             while True:
-                data_dict = await self.websocket.receive_json()
+                msg_dict = await self.websocket.receive_json()
 
-                topic = data_dict["topic"]
+                topic = msg_dict["topic"]
                 logging.info(f"GOT TOPIC {topic}")
 
-                data_list = data_dict["data"]
+                data_dict = msg_dict["data"]
 
                 if topic == "initialize":
                     self.initialize = True
 
-                elif topic == "state":
-                    self.state = data_list
-                    self.stop_generation = True
-
                 elif topic == "start-generation":
                     self.stop_generation = False
-                    self.optimize_layer(data_list)
 
-                    self.stop_generation = False
+                    print(list(data_dict.keys()))
+
+                    prompt = data_dict["prompt"]
+                    canvas_img = data_dict["backgroundImg"]
+                    mask = data_dict["imageBase64"]
+
+                    optimize_layer_thread = threading.Thread(
+                        target=self.optimize_layer,
+                        args=(
+                            prompt,
+                            canvas_img,
+                            mask,
+                        ),
+                    )
+                    optimize_layer_thread.start()
 
                 elif topic == "stop-generation":
                     self.stop_generation = True
 
-        except:
-            logger.exception("Error")
+        except Exception as e:
+            logger.exception("Error", e)
 
     async def send_loop(self):
         while True:
@@ -224,7 +261,7 @@ async def websocket_endpoint(websocket: WebSocket, ):
         await websocket.accept()
         logging.info(f"WEBSOCKET CONNECTED!")
 
-        user_session = UserSession(websocket)
+        user_session = UserSession(websocket, )
 
         await user_session.run()
 
@@ -285,7 +322,7 @@ def main():
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8005,
+        port=8000,
         loop=loop,
     )
 
