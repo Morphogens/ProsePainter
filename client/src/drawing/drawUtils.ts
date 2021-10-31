@@ -37,3 +37,18 @@ export function drawLine(
     ctx.lineTo(x2, y2)
     ctx.stroke()
 }
+
+export function drawLines(
+    ctx:CanvasRenderingContext2D,
+    points: number[][]
+) {
+    if (points.length < 2) {
+        return
+    }
+    ctx.beginPath()
+    ctx.moveTo(points[0][0], points[0][1])
+    for (let idx = 1; idx < points.length; idx++) {
+        ctx.lineTo(points[idx][0], points[idx][1])
+    }
+    ctx.stroke()
+}

@@ -1,16 +1,22 @@
 <script lang="ts">
-    import { erasing, radius } from "./stores"
+    import { erasing, radius, softness, opacity } from "../drawing/stores"
 </script>
 
 <div id="optionPanel">
+    <input type="text" id="lname" name="lname" value="a dog">
     <button on:click={() => ($erasing = false)} class:selected={!$erasing}>
         <img src="/pencil.svg" />
     </button>
     <button on:click={() => ($erasing = true)} class:selected={$erasing}>
         <img src="/eraser.png" />
     </button>
-    <input type="range" orient="vertical" bind:value={$radius} min=1 max=96/>
-    {$radius}
+    <p> Radius={$radius} </p>
+    <input type="range" bind:value={$radius} min=1 max=96/>
+    <!-- <p> Opacity </p>
+    <input type="range" bind:value={$opacity} min=0.0 max=1.0 step="any"/> -->
+    <p> Softness </p>
+    <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
+    
 </div>
 
 <style>
@@ -33,6 +39,9 @@
     }
     button.selected {
         background: #ffa50080;
+    }
+    input{
+        width: 96px;
     }
     input[type="range"][orient="vertical"] {
         writing-mode: bt-lr; /* IE */

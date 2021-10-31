@@ -23,17 +23,11 @@
     "@types/lodash-es": "^4.17.5",
     "autoprefixer": "^10.3.4",
     "d3": "^7.0.1",
+    "d3-contour": "^3.0.1",
     "infinite-viewer": "^0.12.1",
     "lodash-es": "^4.17.21",
-    "page": "^1.11.6",
     "postcss": "^8.3.6",
-    "randomcolor": "^0.6.2",
-    "svelt-yjs": "^1.1.0",
-    "svelte-knobby": "^0.3.1",
-    "svelte-moveable": "^0.18.0",
     "tailwindcss": "^2.2.15",
-    "vite-tsconfig-paths": "^3.3.14",
-    "y-indexeddb": "^9.0.6",
-    "yjs": "^13.5.12"
+    "vite-tsconfig-paths": "^3.3.14"
   }
 }

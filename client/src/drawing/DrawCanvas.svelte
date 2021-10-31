@@ -1,223 +1,130 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
-    import { activeLayer, layers, erasing, radius, layerImages } from "./stores";
-    import { drawLine, drawCircle } from './drawUtils'
-
+    import { onMount, tick } from "svelte"
+    import { drawLines, drawLine, drawCircle } from './drawUtils'
+    import { erasing, radius, softness, opacity, saveState } from "./stores";
+    import { imageContour } from '../imageContour'
     export let width: number
     export let height: number
-    export let backgroundImage: HTMLImageElement
-    export let run = false;
-    export let showLayers = true;
-
+    
     let canvas: HTMLCanvasElement
     let ctx: CanvasRenderingContext2D
-    let canvasReady: boolean = false
     
-    let layerCanvas: HTMLCanvasElement
-    let layerCtx: CanvasRenderingContext2D
-    let layerCanvasReady: boolean = false
+    let currentStrokeCanvas: HTMLCanvasElement
+    let currentStrokeCtx: CanvasRenderingContext2D
+    
+    let outlinesCanvas: HTMLCanvasElement
+    let outlinesCtx: CanvasRenderingContext2D
 
+    
+    let contours = []
     let mouseDown = false
-    let lastMouse: null | [number, number] = null 
-    
-    let lastActiveLayer = null
+    let mouseover = false
+    let drawing = false
+    let currentStroke: number[][] = []
 
-    $: if(drawing){
+    $: if (drawing) {
         console.log("DRAWING!!")
-        console.log(drawing)
     }
     
     onMount(() => {
-        ctx = canvas.getContext("2d");
-        canvasReady = true
+        ctx = canvas.getContext('2d')
+        outlinesCtx = outlinesCanvas.getContext('2d')
+        currentStrokeCtx = currentStrokeCanvas.getContext('2d')
+    })
 
-        layerCtx = layerCanvas.getContext("2d");
-        layerCanvasReady = true
-    });
-
-
-    let drawing = false
-    
-    async function drawBackground() {
-        await tick();
-
-        if (!ctx) {
-            return;
-        }
-
-        if (backgroundImage.src == ""){
-            console.log("RESETTING BACKGROUND")
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, width, height);
-            backgroundImage.src = canvas.toDataURL('image/png')
-
-        } else {
-            console.log("DRAWING BACKGROUND")
-            ctx.drawImage(backgroundImage, 0, 0, width, height)
-        }
-    }
-    
-    async function drawLayers(){
-        console.log("DRAWING LAYERS")
-        await tick();
-
-        if (!ctx) {
-            return;
-        }
-
-        for (const layer of $layers.slice()) {
-            const image = layerImages.get(layer);
-            console.log("DRAWING LAYER")
-            ctx.drawImage(image, 0, 0);
-            // console.log(layer == $activeLayer, layer, $activeLayer);
-            // if (image && layer != $activeLayer) {
-            //     console.log("DRAWING LAYER")
-            //     ctx.drawImage(image, 0, 0);
-            // }
+    function drawContours(contours: number[][][]) {
+        outlinesCtx.clearRect(0, 0, width, height)
+        outlinesCtx.lineWidth = 1
+        outlinesCtx.setLineDash([3, 3]);
+        for (const poly of contours) {
+            drawLines( outlinesCtx, poly)
         }
     }
 
-
-    function drawDone() {
+    function strokeDone() {
         if (!mouseDown){
             return
         }
-        
-        if (!activeLayer){
-            return
-        }
-
-        console.log("DRAW DONE")
-
-        lastMouse = null
-
-        const imageBase64 = layerCanvas.toDataURL('image/png')
-        const image = new Image(width, height)
-        image.src = imageBase64
-
-        console.log("ACTIVE IMAGE RESETED!!")
-        $activeLayer.set('imageBase64', imageBase64)
-
         mouseDown = false
         drawing = false
-
-        drawCanvas()
+        currentStroke = []
+        ctx.drawImage(currentStrokeCanvas, 0, 0)
+        currentStrokeCtx.clearRect(0, 0, width, height)
+        console.log("DRAW DONE")
+        drawContours(imageContour(canvas, ctx) as number[][][])
+        saveState(canvas)        
     }
 
     function onMouseMove(event) {
-        if (!$activeLayer){
-            return
-        }
-
         const [x, y] = [event.offsetX, event.offsetY];
         if (mouseDown) {
+            currentStroke.push([x, y])
             drawing = true
-
             if ($erasing) {
-                layerCtx.globalCompositeOperation = "destination-out";
-                layerCtx.strokeStyle = "rgba(255,255,255,1)";
+                ctx.filter = 'none';
+                ctx.globalCompositeOperation = 'destination-out'
+                ctx.strokeStyle = 'rgba(255,255,255,1)'
+                ctx.lineWidth = $radius
+                ctx.lineCap = 'round'
+                ctx.lineJoin = 'round'
+                drawLines(ctx, currentStroke)
             } else {
-                layerCtx.globalCompositeOperation = "source-over";
-                layerCtx.strokeStyle = $activeLayer.get('color');
-                layerCtx.fillStyle = $activeLayer.get('color');
-            }
-            drawCircle(layerCtx, x, y, $radius)
-            if (lastMouse) {
-                drawLine(layerCtx, ...lastMouse, x, y, $radius*2)
-            }
-            lastMouse = [x, y]
+                ctx.globalCompositeOperation = 'destination-over'
+                currentStrokeCtx.globalAlpha = 1 - $opacity;
+                currentStrokeCtx.filter = `blur(${$softness}px)`;
+                currentStrokeCtx.strokeStyle = 'black'
+                currentStrokeCtx.lineWidth = $radius
+                currentStrokeCtx.lineCap = 'round'
+                currentStrokeCtx.lineJoin = 'round'
+                currentStrokeCtx.clearRect(0, 0, width, height)
+                drawLines(currentStrokeCtx, currentStroke)
+            }            
         }
     }
-    
-    $: if ($activeLayer != lastActiveLayer && layerCtx) {
-        console.log("ACTIVE LAYER CHANGED!")
-        // layerCtx.clearRect(0, 0, width, height)
-        lastActiveLayer = $activeLayer        
-        if ($activeLayer) {
-            const image = layerImages.get($activeLayer)
-            if (image) {
-                layerCtx.drawImage(image, 0, 0)
-            }
-        }
-    }
-
-    async function drawCanvas(){
-        await drawBackground()
-        if (showLayers){
-            await drawLayers()
-        }
-    }
-
-    $: if(true){
-        console.log(showLayers)
-        drawCanvas()
-    }
-    
-    $: if ($layers || $activeLayer ) {
-        if ($activeLayer){
-            drawCanvas()
-        }
-    }
-    
-    // $: if (backgroundImage && ctx) {
-    //     // ctx.clearRect(0, 0, width, height)
-    //     console.log("BACKGROUND CHANGED!")
-    //     // drawBackground()
-    // }
 
 </script>
-
-<!-- {#if drawing || !layerCanvasReady}
-    drawing canvas
+<div id='canvasesContainer'
+    on:mousedown={() => (mouseDown = true)}
+    on:mouseup={() => strokeDone()}
+    on:mouseleave={() => strokeDone()}
+    on:mousemove={onMouseMove}
+    on:mouseover={() => mouseover=true}
+    on:mouseout={() => mouseover=false}
+    on:focus={() => mouseover=true}
+    on:blur={() => mouseover=false}
+>
     <canvas
-        bind:this={layerCanvas}
-        {width}
-        {height}
-        on:mousedown={() => (mouseDown = true)}
-        on:mouseup={() => drawDone()}
-        on:mouseleave={() => drawDone()}
-        on:mousemove={onMouseMove}
-    />
-{/if}
-
-{#if !drawing || !canvasReady}
-    regular canvas
-    <canvas
+        id='drawCanvas'
         bind:this={canvas}
         {width}
         {height}
-        on:mousedown={() => (mouseDown = true)}
-        on:mouseup={() => drawDone()}
-        on:mouseleave={() => drawDone()}
-        on:mousemove={onMouseMove}
+        style='opacity:{mouseover ? 1 : 0}'
     />
-{/if} -->
-    
-drawing canvas
-<canvas
-    bind:this={layerCanvas}
-    {width}
-    {height}
-    on:mousedown={() => (mouseDown = true)}
-    on:mouseup={() => drawDone()}
-    on:mouseleave={() => drawDone()}
-    on:mousemove={onMouseMove}
-/>
+    <canvas
+        id='outlinesCanvas'
+        bind:this={outlinesCanvas}
+        {width}
+        {height}
+        style='opacity:{mouseover ? 0 : 1}'
+    />
+    <canvas
+        id="currentStrokeCanvas"
+        bind:this={currentStrokeCanvas}
+        {width}
+        {height}
+    />
+</div>
 
-regular canvas
-<canvas
-    bind:this={canvas}
-    {width}
-    {height}
-    on:mousedown={() => (mouseDown = true)}
-    on:mouseup={() => drawDone()}
-    on:mouseleave={() => drawDone()}
-    on:mousemove={onMouseMove}
-/>
 
 <style>
-    canvas {
+    #canvasesContainer {
         position: relative;
         cursor: crosshair;
     }
+    #currentStrokeCanvas, #outlinesCanvas {
+        position: absolute;
+        top: 0px;
+        left: 0px;
+    }
+    /* .hidden */
 </style>

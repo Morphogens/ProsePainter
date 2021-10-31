@@ -4,14 +4,14 @@ import { writable, readable, get } from 'svelte/store'
 // export const socket = new WebSocket('ws://localhost:8005/ws')
 
 const serverIP = "localhost";
-const apiPort = "8000";
+const apiPort = "8004";
 const serverURL = `ws://${serverIP}:${apiPort}/ws`;
 
 export let socket = null
 
 function connect(){
-  console.log("ESTABLISHING WEBSOCKET CONNECTION WITH ", serverURL)
-  socket = new WebSocket(serverURL);
+    console.log("ESTABLISHING WEBSOCKET CONNECTION WITH ", serverURL)
+    socket = new WebSocket(serverURL);
 }
 
 connect()
@@ -19,13 +19,13 @@ connect()
 // preserve the socket across HMR updates
 if (import.meta.hot) {
     if (import.meta.hot.data.stores) {
-      socket = import.meta.hot.data.socket
+        socket = import.meta.hot.data.socket
     }
     import.meta.hot.accept()
     import.meta.hot.dispose(() => {
-      import.meta.hot.data.socket = socket
+        import.meta.hot.data.socket = socket
     })
-  }
+}
   
   
 export const socketOpen = readable(false, (set) => {    
@@ -51,8 +51,8 @@ export const socketOpen = readable(false, (set) => {
     // }
 })
 
-export function messageServer(message:string, data:any) {
+export function messageServer(topic:string, data:any) {
     if (get(socketOpen)) {
-        socket.send(JSON.stringify({ message, data }))
+        socket.send(JSON.stringify({ topic, data }))
     }
 }

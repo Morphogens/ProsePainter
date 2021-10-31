@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
     import {
         layers,
         activeLayer,
@@ -73,4 +73,4 @@
     .layer.selected {
         background: #ffa50080;
     }
-</style>
+</style> -->
