@@ -231,6 +231,12 @@ class UserSession:
                     prompt = data_dict["prompt"]
                     canvas_img = data_dict["backgroundImg"]
                     mask = data_dict["imageBase64"]
+                    lr = data_dict["learningRate"]
+
+                    lr /= 1000
+
+                    logging.info(f"LR --> {lr}")
+                    logging.info(f"PROMPT --> {prompt}")
 
                     optimize_layer_thread = threading.Thread(
                         target=self.optimize_layer,
@@ -238,6 +244,7 @@ class UserSession:
                             prompt,
                             canvas_img,
                             mask,
+                            lr,
                         ),
                     )
                     optimize_layer_thread.start()

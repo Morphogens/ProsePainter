@@ -1,10 +1,10 @@
 <script lang="ts">
-    import { learningRate } from '../stores'
+    import { learningRate, prompt } from '../stores'
     import { erasing, radius, softness, clear } from "../drawing/stores"
 </script>
 
 <div id="optionPanel">
-    <input type="text" id="lname" name="lname" value="a dog">
+    <input type="text" id="lname" name="lname" bind:value={$prompt}>
     <button on:click={() => ($erasing = false)} class:selected={!$erasing}>
         <img src="/pencil.svg" />
     </button>
@@ -20,7 +20,8 @@
     <p> Softness </p>
     <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
     <p> learningRate </p>
-    <input type="range" bind:value={$learningRate} min=0 max=1.0 step="any"/>
+    <input type="range" bind:value={$learningRate} min=0 max=50.0 step=1/>
+    {$learningRate / 1000}
     
 </div>
 

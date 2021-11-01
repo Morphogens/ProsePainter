@@ -7,7 +7,7 @@ import { canvasBase64 } from './drawing/stores'
 export const isOptimizing = writable(false)
 export const lastOptimizationResult = writable(new Image(512, 512))
 export const prompt = writable('a dog')
-export const learningRate = writable(0.5)
+export const learningRate = writable(10)
 loadImage(startBackgroundUrl).then(img => lastOptimizationResult.set(img))
 
 interface StartGenerationData {
