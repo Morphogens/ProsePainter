@@ -26,6 +26,6 @@ export function imageContour(
         return contours()
             .size([width, height])
             .thresholds([10])(alpha)[0]
-            .coordinates[0]
+            .coordinates.flat()
     }
 }
