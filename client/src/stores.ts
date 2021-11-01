@@ -1,7 +1,5 @@
 import { writable,readable, derived, get } from 'svelte/store'
-// import type { DrawLayer } from './types'
-// import type { Readable } from 'svelte/store'
-import { socket, socketOpen, messageServer } from "@/lib/socket";
+import { socket, messageServer } from "@/lib/socket";
 import startBackgroundUrl from './assets/startImage0.jpeg'
 import { loadImage, imgTob64 } from './utils';
 import { canvasBase64 } from './drawing/stores'
@@ -9,20 +7,26 @@ import { canvasBase64 } from './drawing/stores'
 export const isOptimizing = writable(false)
 export const lastOptimizationResult = writable(new Image(512, 512))
 export const prompt = writable('a dog')
-
+export const learningRate = writable(0.5)
 loadImage(startBackgroundUrl).then(img => lastOptimizationResult.set(img))
 
+interface StartGenerationData {
+    prompt: string
+    imageBase64: string
+    learningRate: number
+    backgroundImg: string
+}
+
 export function startGeneration() {
-    const data = {
+    const data: StartGenerationData = {
         prompt: get(prompt),
         imageBase64: get(canvasBase64),
+        learningRate: get(learningRate),
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }
     if (data.prompt == '') {
         return console.warn('Need a promp to optimize.')
     } 
-    console.log(data);
-
     messageServer('start-generation', data)
     isOptimizing.set(true)
 }
