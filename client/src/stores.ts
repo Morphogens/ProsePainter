@@ -15,14 +15,12 @@ loadImage(startBackgroundUrl).then(img => lastOptimizationResult.set(img))
 export function startGeneration() {
     const data = {
         prompt: get(prompt),
-        imageBase64: canvasBase64,
+        imageBase64: get(canvasBase64),
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }
     if (data.prompt == '') {
         return console.warn('Need a promp to optimize.')
     } 
-    console.log(data);
-
     messageServer('start-generation', data)
     isOptimizing.set(true)
 }
