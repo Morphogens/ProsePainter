@@ -12,14 +12,15 @@ def process_mask(
     size: Tuple = None,
     min_thold: float = 0.1,
 ):
-    mask_pil = mask_pil.convert("L")
+    # mask_pil = mask_pil.convert("RGB")
     if size is not None:
         mask_pil = mask_pil.resize(size)
 
     mask = np.float32(np.array(mask_pil)) / 255.
-    mask[mask < min_thold] = 0
-    mask[mask == 1] = 0
-    mask[mask > 1] = 1
+    mask = mask[:, :, -1]
+    # mask[mask < min_thold] = 0
+    # mask[mask == 1] = 0
+    # mask[mask > 1] = 1
 
     return mask
 
