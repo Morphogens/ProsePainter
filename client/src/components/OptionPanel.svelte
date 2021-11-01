@@ -20,7 +20,7 @@
     <p> Softness </p>
     <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
     <p> learningRate </p>
-    <input type="range" bind:value={$learningRate} min=0 max=50.0 step=1/>
+    <input type="range" bind:value={$learningRate} min=0 max=500.0 step=1/>
     {$learningRate / 1000}
     
 </div>
