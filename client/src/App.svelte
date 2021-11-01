@@ -3,13 +3,11 @@
     import InfiniteViewer from "@/drawing/svelte-infinite-viewer";
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import OptionPanel from "@/components/OptionPanel.svelte";
-    // import LayersPanel from "@/drawing/LayersPanel.svelte";
     import { socket, socketOpen } from "@/lib/socket";
-    // import { activeLayer, layers, undo, layerImages } from "@/drawing/stores";
     import { onMount, tick } from "svelte";
     import Indicator from "@/components/Indicator.svelte";
-    // import { debounce } from "lodash";
     import { lastOptimizationResult, isOptimizing, startGeneration, stopGeneration } from './stores'
+    import { canvasBase64 } from "./drawing/stores";
 
     let backgroundCanvas:HTMLCanvasElement
     let backgroundCanvasCTX:CanvasRenderingContext2D
@@ -66,9 +64,17 @@
             {/if}
         </div>
     </div>
+    <img id='debugMask' src={$canvasBase64}>
 </InfiniteViewer>
 
 <style>
+    #debugMask  {
+        position: fixed;
+        bottom: 0px;
+        right: 0px;
+        border:1px solid black;
+        width: 256px;
+    }
     #backgroundCanvas {
         top: 0px;
         position: absolute;

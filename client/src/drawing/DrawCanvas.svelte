@@ -1,8 +1,9 @@
 <script lang="ts">
     import { onMount, tick } from "svelte"
     import { drawLines, drawLine, drawCircle } from './drawUtils'
-    import { erasing, radius, softness, opacity, saveState } from "./stores";
+    import { erasing, radius, softness, opacity, saveState, canvasBase64 } from "./stores";
     import { imageContour } from '../imageContour'
+    import { loadImage } from "@/utils";
     export let width: number
     export let height: number
     
@@ -15,8 +16,6 @@
     let outlinesCanvas: HTMLCanvasElement
     let outlinesCtx: CanvasRenderingContext2D
 
-    
-    let contours = []
     let mouseDown = false
     let mouseover = false
     let drawing = false
@@ -26,10 +25,18 @@
         console.log("DRAWING!!")
     }
     
-    onMount(() => {
+    onMount(async () => {
         ctx = canvas.getContext('2d')
         outlinesCtx = outlinesCanvas.getContext('2d')
         currentStrokeCtx = currentStrokeCanvas.getContext('2d')
+        
+        // Draw the start image that was saved
+        const last = window.localStorage.getItem('canvasBase64')
+        if (last) {
+            ctx.drawImage(await loadImage(last), 0, 0)
+            canvasBase64.set(last)
+            drawContours(imageContour(canvas, ctx) as number[][][])
+        }
     })
 
     function drawContours(contours: number[][][]) {
