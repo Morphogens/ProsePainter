@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte"
-    import { drawLines, drawLine, drawCircle } from './drawUtils'
-    import { erasing, radius, softness, opacity, saveState, canvasBase64 } from "./stores";
+    import { onMount } from "svelte"
+    import { drawLines } from './drawUtils'
+    import { erasing, radius, softness, opacity, canvasChanged, drawContext, canvasBase64 } from "./stores";
     import { imageContour } from '../imageContour'
     import { loadImage } from "@/utils";
     export let width: number
@@ -18,18 +18,13 @@
 
     let mouseDown = false
     let mouseover = false
-    let drawing = false
     let currentStroke: number[][] = []
 
-    $: if (drawing) {
-        console.log("DRAWING!!")
-    }
-    
     onMount(async () => {
         ctx = canvas.getContext('2d')
         outlinesCtx = outlinesCanvas.getContext('2d')
         currentStrokeCtx = currentStrokeCanvas.getContext('2d')
-        
+        drawContext.set({ canvas, ctx })
         // Draw the start image that was saved
         const last = window.localStorage.getItem('canvasBase64')
         if (last) {
@@ -38,7 +33,7 @@
             drawContours(imageContour(canvas, ctx) as number[][][])
         }
     })
-
+    
     function drawContours(contours: number[][][]) {
         outlinesCtx.clearRect(0, 0, width, height)
         outlinesCtx.lineWidth = 1
@@ -48,25 +43,28 @@
         }
     }
 
+    // Listen for changes to the canvas and update contours.
+    canvasBase64.subscribe(($canvasBase64) => {
+        if ($canvasBase64) {
+            drawContours(imageContour(canvas, ctx) as number[][][])
+        }
+    })
+    
     function strokeDone() {
         if (!mouseDown){
             return
         }
         mouseDown = false
-        drawing = false
         currentStroke = []
         ctx.drawImage(currentStrokeCanvas, 0, 0)
         currentStrokeCtx.clearRect(0, 0, width, height)
-        console.log("DRAW DONE")
-        drawContours(imageContour(canvas, ctx) as number[][][])
-        saveState(canvas)        
+        canvasChanged()
     }
 
     function onMouseMove(event) {
         const [x, y] = [event.offsetX, event.offsetY];
         if (mouseDown) {
             currentStroke.push([x, y])
-            drawing = true
             if ($erasing) {
                 ctx.filter = 'none';
                 ctx.globalCompositeOperation = 'destination-out'

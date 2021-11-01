@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { erasing, radius, softness, opacity } from "../drawing/stores"
+    import { erasing, radius, softness, opacity, clear } from "../drawing/stores"
 </script>
 
 <div id="optionPanel">
@@ -9,6 +9,10 @@
     </button>
     <button on:click={() => ($erasing = true)} class:selected={$erasing}>
         <img src="/eraser.png" />
+    </button>
+    
+    <button on:click={() => clear()}>
+        <p> Clear Mask </p>
     </button>
     <p> Radius={$radius} </p>
     <input type="range" bind:value={$radius} min=1 max=96/>
@@ -32,6 +36,9 @@
         border-bottom-right-radius: 4px;
         align-items: center;
         border: 1px solid;
+    }
+    button {
+        cursor: pointer;
     }
     button > img {
         width: 50px;
