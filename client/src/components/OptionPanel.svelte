@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { erasing, radius, softness, opacity, clear } from "../drawing/stores"
+    import { learningRate } from '../stores'
+    import { erasing, radius, softness, clear } from "../drawing/stores"
 </script>
 
 <div id="optionPanel">
@@ -16,10 +17,10 @@
     </button>
     <p> Radius={$radius} </p>
     <input type="range" bind:value={$radius} min=1 max=96/>
-    <!-- <p> Opacity </p>
-    <input type="range" bind:value={$opacity} min=0.0 max=1.0 step="any"/> -->
     <p> Softness </p>
     <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
+    <p> learningRate </p>
+    <input type="range" bind:value={$learningRate} min=0 max=1.0 step="any"/>
     
 </div>
 
