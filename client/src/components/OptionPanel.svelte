@@ -1,15 +1,28 @@
 <script lang="ts">
-    import { erasing, radius } from "./stores"
+    import { learningRate, prompt } from '../stores'
+    import { erasing, radius, softness, clear } from "../drawing/stores"
 </script>
 
 <div id="optionPanel">
+    <input type="text" id="lname" name="lname" bind:value={$prompt}>
     <button on:click={() => ($erasing = false)} class:selected={!$erasing}>
         <img src="/pencil.svg" />
     </button>
     <button on:click={() => ($erasing = true)} class:selected={$erasing}>
         <img src="/eraser.png" />
     </button>
-    <input type="range" orient="vertical" bind:value={$radius} min=1 max=96/>
+    
+    <button on:click={() => clear()}>
+        <p> Clear Mask </p>
+    </button>
+    <p> Radius={$radius} </p>
+    <input type="range" bind:value={$radius} min=1 max=96/>
+    <p> Softness </p>
+    <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
+    <p> learningRate </p>
+    <input type="range" bind:value={$learningRate} min=0 max=500.0 step=1/>
+    {$learningRate / 1000}
+    
 </div>
 
 <style>
@@ -24,6 +37,10 @@
         border-top-right-radius: 4px;
         border-bottom-right-radius: 4px;
         align-items: center;
+        border: 1px solid;
+    }
+    button {
+        cursor: pointer;
     }
     button > img {
         width: 50px;
@@ -31,6 +48,9 @@
     }
     button.selected {
         background: #ffa50080;
+    }
+    input{
+        width: 96px;
     }
     input[type="range"][orient="vertical"] {
         writing-mode: bt-lr; /* IE */

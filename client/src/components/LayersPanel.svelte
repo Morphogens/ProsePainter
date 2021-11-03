@@ -1,4 +1,4 @@
-<script lang="ts">
+<!-- <script lang="ts">
     import {
         layers,
         activeLayer,
@@ -55,6 +55,8 @@
         border-top-left-radius: 4px;
         border-bottom-left-radius: 4px;
         align-items: center;
+        min-width: 100px;
+        border: 1px solid;
     }
     .layer {
         display: flex;
@@ -71,4 +73,4 @@
     .layer.selected {
         background: #ffa50080;
     }
-</style>
+</style> -->

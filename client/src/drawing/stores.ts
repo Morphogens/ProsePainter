@@ -1,70 +1,45 @@
-import { writable, derived, get } from 'svelte/store'
-import type { Readable } from 'svelte/store'
-import * as Y from 'yjs'
-import { IndexeddbPersistence } from 'y-indexeddb'
-import { readableArray, readableMap } from 'svelt-yjs'
-
-import color from 'randomcolor'
-import type { DrawLayer } from './types'
-
-const ydoc = new Y.Doc()
-new IndexeddbPersistence('clipCanvas', ydoc)
-
+import { writable, get } from 'svelte/store'
 
 export const radius = writable(16)
+export const opacity = writable(0.0)
+export const softness = writable(3)
 export const erasing = writable(false)
 
-const yLayers = ydoc.get(`ylayers`, Y.Array) as Y.Array<Y.Map<any>>
-export const undo = new Y.UndoManager(yLayers)
-
-export const layers = readableArray(yLayers)
-export const activeLayerIdx = writable(null as null | number)
-export const activeLayer = derived([activeLayerIdx, layers], ([$activeLayerIdx, $layers]) => {
-    return $activeLayerIdx != null ? $layers[$activeLayerIdx] : null
-})
-export const layerImages = new Map<Y.Map<any>, HTMLImageElement>()
-
-export function addLayer(prompt:string) {
-    const yMap = new Y.Map<any>()
-    // const layer:DrawLayer = {
-        //     prompt,
-        //     color: color(),
-        //     strength: 1.0,
-        //     image: null,
-        //     imageBase64: null,
-        // }    
-    yMap.set('prompt', prompt)
-    yMap.set('color', color())
-    yMap.set('strength', 1.0)
-    yMap.set('imageBase64', null)
-    yLayers.insert(yLayers.length, [yMap])
-    activeLayerIdx.set(get(layers).length - 1)
+interface DrawContext {
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement
 }
+export const drawContext = writable(null as null | DrawContext)
+export const canvasBase64 = writable(null as null | string)
+const history:string[] = []
 
-
-export function removeLayer(layer:Y.Map<any>) {
-    const index = yLayers.toArray().indexOf(layer)
-    yLayers.delete(index, 1)
-}
-
-layers.subscribe($layers => {
-    $layers.forEach(bindYLayer)
+canvasBase64.subscribe(() => {
+    console.log('canvasBase64 changed')
 })
 
-function bindYLayer(yMap:Y.Map) {
-    if (layerImages.get(yMap)) {
-        return
-    }
-    const image = new Image()
-    layerImages.set(yMap, image)    
-    if (yMap.get('imageBase64')) {
-        image.src = yMap.get('imageBase64')
-    }
-    yMap.observe(() => {
-        if (yMap.get('imageBase64')) {
-            // console.log('iage change');
-            
-            image.src = yMap.get('imageBase64')
-        }
-    })
+export function canvasChanged() {
+    const { canvas } = get(drawContext)
+    const base64 = canvas.toDataURL()
+    history.push(get(canvasBase64))
+    canvasBase64.set(base64)
+    window.localStorage.setItem('canvasBase64', base64)
 }
+
+export function clear() {
+    const { canvas, ctx } = get(drawContext)
+    ctx.clearRect(0, 0, 512, 512)
+    canvasChanged()
+}
+
+export function undo() {
+    if (history.length) {
+        canvasBase64.set(history.pop())
+    }
+}
+// export function saveState(canvas:HTMLCanvasElement) {
+//     const newBase64 = canvas.toDataURL()
+//     history.push(get(canvasBase64))
+//     canvasBase64.set(newBase64)
+//     // console.log('saving', newBase64.length);
+//     window.localStorage.setItem('canvasBase64', newBase64)
+// }
