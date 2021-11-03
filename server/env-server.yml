@@ -13,9 +13,6 @@ dependencies:
   - pip=21.0.1
   - pip:
     - fastapi==0.68.1
-    - uvicorn==0.15.0
+    - uvicorn[standard]==0.15.0
     - loguru==0.5.3
-    - websockets==10.0
-    - git+https://github.com/patil-suraj/vqgan-jax.git 
-    - git+https://github.com/borisdayma/dalle-mini.git 
     - hugging-gan-test

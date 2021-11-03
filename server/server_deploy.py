@@ -22,7 +22,6 @@ from PIL import Image
 from torchvision.transforms import functional as TF
 
 sys.path.append("../")
-sys.path.append("../HuggingGAN")
 from server.server_data_utils import (
     process_mask,
     get_limits_from_mask,

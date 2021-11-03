@@ -5,7 +5,6 @@ import torch
 import numpy as np
 from PIL import Image
 
-sys.path.append("HuggingGAN")
 from server.server_model_utils import LayerOptimizer
 from server.server_data_utils import (
     process_mask,
