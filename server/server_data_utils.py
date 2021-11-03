@@ -70,7 +70,10 @@ def scale_crop(crop, ):
     if any([size for size in crop_size]):
         scale_factor = max(crop_size) / MAX_IMG_DIM
         scale_factor = scale_factor
-        crop_size = tuple(np.int32(np.asarray(crop_size) / scale_factor))
+        # NOTE: scale to the nearest multiples of 16
+        crop_size = tuple(
+            np.int32(
+                np.round((np.asarray(crop_size) / scale_factor) / 16) * 16))
 
     crop = torch.nn.functional.interpolate(
         crop,

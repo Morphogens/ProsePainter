@@ -59,6 +59,7 @@ class LayerOptimizer:
 
     def optimize(self, ):
         gen_img = model.get_img_from_latents(self.gen_latents, )
+        gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
 
         # torchvision.transforms.ToPILImage(mode="L")(
         #     self.mask[0]).save("generations/mask.jpg")
