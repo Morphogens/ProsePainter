@@ -1,26 +1,51 @@
-import random
-import time
-import logging
+from typing import *
 
 import torch
-import torchvision
 import numpy as np
-from PIL import Image
 from bigotis.models import TamingDecoder, Aphantasia
-from torchvision.transforms.functional import scale
+from loguru import logger
+
+from server.server_config import MODEL_NAME
 
 torch.manual_seed(123)
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print("DEVICE: ", DEVICE)
 
-taming_decoder = TamingDecoder()
-taming_decoder.eval()
-model = taming_decoder.to(DEVICE)
 
-# aphantasia = Aphantasia()
-# aphantasia.eval()
-# model = aphantasia
+class ModelFactory:
+    def __init__(self, ):
+        self.taming_decoder = None
+        self.aphantasia = None
+
+    def load_model(
+        self,
+        model_name: str,
+    ):
+        logger.debug(f"LOADING {model_name}...")
+
+        if model_name == "taming":
+            if self.taming_decoder is None:
+                logger.info("SETTING UP TAMING...")
+                self.taming_decoder = TamingDecoder()
+                self.taming_decoder.eval()
+
+            model = self.taming_decoder
+
+        elif model_name == "aphantasia":
+            if self.aphantasia is None:
+                logger.info("SETTING UP APHANTASIA...")
+                self.aphantasia = Aphantasia()
+                self.aphantasia.eval()
+
+            model = self.aphantasia
+
+        model = model.to(DEVICE)
+
+        return model
+
+
+model_factory = ModelFactory()
 
 
 class LayerOptimizer:
@@ -37,12 +62,14 @@ class LayerOptimizer:
 
         self.layer_size = mask.shape[2::]
 
-        text_latents = model.get_clip_text_encodings(prompt, )
+        self.model = model_factory.load_model(MODEL_NAME)
+
+        text_latents = self.model.get_clip_text_encodings(prompt, )
         text_latents = text_latents.detach()
         text_latents = text_latents.to(DEVICE)
         self.text_latents = text_latents
 
-        self.gen_latents = model.get_latents_from_img(cond_img, )
+        self.gen_latents = self.model.get_latents_from_img(cond_img, )
         self.gen_latents = self.gen_latents.to(DEVICE)
         self.gen_latents = self.gen_latents.detach().clone()
         self.gen_latents.requires_grad = True
@@ -58,7 +85,7 @@ class LayerOptimizer:
         return
 
     def optimize(self, ):
-        gen_img = model.get_img_from_latents(self.gen_latents, )
+        gen_img = self.model.get_img_from_latents(self.gen_latents, )
         gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
 
         # torchvision.transforms.ToPILImage(mode="L")(
@@ -68,8 +95,8 @@ class LayerOptimizer:
         # torchvision.transforms.ToPILImage(mode="RGB")(
         #     self.cond_img[0]).save("generations/init_img.jpg")
 
-        img_aug = model.augment(gen_img, )
-        img_latents = model.get_clip_img_encodings(img_aug, ).to(DEVICE)
+        img_aug = self.model.augment(gen_img, )
+        img_latents = self.model.get_clip_img_encodings(img_aug, ).to(DEVICE)
 
         loss = (self.text_latents -
                 img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
@@ -79,7 +106,7 @@ class LayerOptimizer:
         #     img_latents,
         # ).mean()
 
-        logging.info(f"LOSS --> {loss} \n\n")
+        logger.info(f"LOSS --> {loss} \n\n")
 
         def scale_grad(grad, ):
             grad_size = grad.shape[2:4]

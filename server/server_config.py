@@ -1,1 +1,5 @@
+MODEL_NAME = "taming"
+
 MAX_IMG_DIM = 256
+
+LOGGER_LEVEL = "INFO"

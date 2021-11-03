@@ -21,7 +21,7 @@ export function startGeneration() {
     const data: StartGenerationData = {
         prompt: get(prompt),
         imageBase64: get(canvasBase64),
-        learningRate: get(learningRate),
+        learningRate: get(learningRate)/1000,
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }
     if (data.prompt == '') {

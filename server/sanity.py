@@ -1,12 +1,11 @@
-import sys
+import os
 from typing import *
 
-import torch
 import numpy as np
 from PIL import Image
 
-from server.server_model_utils import LayerOptimizer
-from server.server_data_utils import (
+from server.server_modelling import LayerOptimizer
+from server.server_modelling_utils import (
     process_mask,
     get_limits_from_mask,
     get_crop_from_limits,
@@ -19,7 +18,6 @@ if __name__ == "__main__":
     iters_per_mask = 4
 
     style_prompt = "japanese painting 4K"
-
     prompt_list = [
         "Waves",
         "Roses",
@@ -27,10 +25,17 @@ if __name__ == "__main__":
         "Water drops",
     ]
 
+    canvas_img_path = "server/imgs/img.png"
+
+    os.makedirs(
+        "generations",
+        exist_ok=True,
+    )
+
     prompt_list = [prompt + " " + style_prompt for prompt in prompt_list]
 
     canvas_img = np.float32(
-        np.asarray(Image.open("server/imgs/img.png").convert("RGB"))) / 255.
+        np.asarray(Image.open(canvas_img_path).convert("RGB"))) / 255.
 
     img_height, img_width, _ch = canvas_img.shape
     target_img_size = (
