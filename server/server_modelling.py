@@ -1,29 +1,74 @@
-import random
-import time
-import logging
+import os
+from typing import *
 
 import torch
 import torchvision
 import numpy as np
-from PIL import Image
 from bigotis.models import TamingDecoder, Aphantasia
-from torchvision.transforms.functional import scale
+from loguru import logger
+
+from server.server_config import MODEL_NAME, DEBUG, DEBUG_OUT_DIR
 
 torch.manual_seed(123)
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print("DEVICE: ", DEVICE)
 
-taming_decoder = TamingDecoder()
-taming_decoder.eval()
-model = taming_decoder.to(DEVICE)
 
-# aphantasia = Aphantasia()
-# aphantasia.eval()
-# model = aphantasia
+class ModelFactory:
+    """
+    Functionalities to load ready to use generative models.
+    """
+    def __init__(self, ) -> None:
+        """
+        Set up instances where models will be saved.
+        """
+        self.taming_decoder = None
+        self.aphantasia = None
+
+    def load_model(
+        self,
+        model_name: str,
+    ) -> torch.nn.Module:
+        """
+        Load a model and store it to its respective class instance.
+
+        Args:
+            model_name (str): name of the model to load. Currently accepting `taming` and `aphantasia`.
+
+        Returns:
+            torch.nn.Module: ready to use model.
+        """
+        logger.debug(f"LOADING {model_name}...")
+
+        if model_name == "taming":
+            if self.taming_decoder is None:
+                logger.info("SETTING UP TAMING...")
+                self.taming_decoder = TamingDecoder()
+                self.taming_decoder.eval()
+
+            model = self.taming_decoder
+
+        elif model_name == "aphantasia":
+            if self.aphantasia is None:
+                logger.info("SETTING UP APHANTASIA...")
+                self.aphantasia = Aphantasia()
+                self.aphantasia.eval()
+
+            model = self.aphantasia
+
+        model = model.to(DEVICE)
+
+        return model
 
 
-class LayerOptimizer:
+model_factory = ModelFactory()
+
+
+class MaskOptimizer:
+    """
+    Set parameters to optimize an masked image with text.
+    """
     def __init__(
         self,
         prompt: str,
@@ -31,18 +76,29 @@ class LayerOptimizer:
         mask: np.ndarray,
         lr: float,
         **kwargs,
-    ):
+    ) -> None:
+        """
+        Set up optimization parameters.
+
+        Args:
+            prompt (str): prompt used to guide the optimization.
+            cond_img (np.ndarray): initial image used to start the optimization.
+            mask (np.ndarray): mask determining the region to optimize.
+            lr (float): learning rate.
+        """
         self.mask = mask.to(DEVICE)
         self.cond_img = cond_img.to(DEVICE)
 
         self.layer_size = mask.shape[2::]
 
-        text_latents = model.get_clip_text_encodings(prompt, )
+        self.model = model_factory.load_model(MODEL_NAME)
+
+        text_latents = self.model.get_clip_text_encodings(prompt, )
         text_latents = text_latents.detach()
         text_latents = text_latents.to(DEVICE)
         self.text_latents = text_latents
 
-        self.gen_latents = model.get_latents_from_img(cond_img, )
+        self.gen_latents = self.model.get_latents_from_img(cond_img, )
         self.gen_latents = self.gen_latents.to(DEVICE)
         self.gen_latents = self.gen_latents.detach().clone()
         self.gen_latents.requires_grad = True
@@ -57,29 +113,43 @@ class LayerOptimizer:
 
         return
 
-    def optimize(self, ):
-        gen_img = model.get_img_from_latents(self.gen_latents, )
+    def optimize(self, ) -> torch.Tensor:
+        """
+        Perform one optimization step.
+
+        Returns:
+            torch.Tensor: updated image.
+        """
+        gen_img = self.model.get_img_from_latents(self.gen_latents, )
         gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
 
-        # torchvision.transforms.ToPILImage(mode="L")(
-        #     self.mask[0]).save("generations/mask.jpg")
-        # torchvision.transforms.ToPILImage(mode="RGB")(
-        #     gen_img[0], ).save("generations/gen_img.jpg")
-        # torchvision.transforms.ToPILImage(mode="RGB")(
-        #     self.cond_img[0]).save("generations/init_img.jpg")
+        if DEBUG:
+            os.makedirs(
+                DEBUG_OUT_DIR,
+                exist_ok=True,
+            )
 
-        img_aug = model.augment(gen_img, )
-        img_latents = model.get_clip_img_encodings(img_aug, ).to(DEVICE)
+            torchvision.transforms.ToPILImage(mode="L")(self.mask[0]).save(
+                os.path.join(DEBUG_OUT_DIR, "mask.jpg"))
+            torchvision.transforms.ToPILImage(mode="RGB")(gen_img[0], ).save(
+                os.path.join(DEBUG_OUT_DIR, "gen_img.jpg"))
+            torchvision.transforms.ToPILImage(mode="RGB")(
+                self.cond_img[0]).save(
+                    os.path.join(DEBUG_OUT_DIR, "init_img.jpg"))
+
+        img_aug = self.model.augment(gen_img, )
+        img_latents = self.model.get_clip_img_encodings(img_aug, ).to(DEVICE)
 
         loss = (self.text_latents -
                 img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
 
+        # TODO: integrate other losses
         # loss = -10 * torch.cosine_similarity(
         #     self.text_latents,
         #     img_latents,
         # ).mean()
 
-        logging.info(f"LOSS --> {loss} \n\n")
+        logger.debug(f"LOSS --> {loss} \n\n")
 
         def scale_grad(grad, ):
             grad_size = grad.shape[2:4]
@@ -90,22 +160,17 @@ class LayerOptimizer:
                 mode="bilinear",
             )
 
-            if len(grad.shape) == 5:
-                grad_mask = grad_mask[..., None]
-
             masked_grad = grad * grad_mask
 
             return masked_grad
 
-        # hook = self.gen_latents.register_hook(scale_grad)
-        hook_img = gen_img.register_hook(scale_grad)
+        gen_img_hook = gen_img.register_hook(scale_grad, )
 
         self.optimizer.zero_grad()
         loss.backward(retain_graph=False, )
         self.optimizer.step()
 
-        # hook.remove()
-        hook_img.remove()
+        gen_img_hook.remove()
 
         gen_img = torch.nn.functional.interpolate(
             gen_img,
@@ -117,6 +182,7 @@ class LayerOptimizer:
         return gen_img
 
 
+# NOTE: keeping this code because it includes cool stuff such as regularizers.
 # class LayeredGenerator(torch.nn.Module):
 #     def __init__(
 #         self,

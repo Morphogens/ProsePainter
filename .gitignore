@@ -1,5 +1,5 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 *.pyc
@@ -11,8 +11,6 @@ __pycache__/
 
 *.jpg
 *.png
-
-.vscode/settings.json
 
 # C extensions
 *.so
@@ -148,3 +146,6 @@ dmypy.json
 cython_debug/
 
 .DS_Store
+
+generations
+.vscode

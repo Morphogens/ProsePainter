@@ -14,7 +14,7 @@ interface StartGenerationData {
 export function start() {
     const data: StartGenerationData = {
         prompt: get(prompt),
-        learningRate: get(learningRate),
+        learningRate: get(learningRate)/1000,
         imageBase64: get(maskCanvasBase64),
         backgroundImg: get(mainCanvasBase64),
     }
@@ -53,7 +53,7 @@ export function resume() {
     // like start() but use lastOptimizationResult instead of main canvas
     const data: StartGenerationData = {
         prompt: get(prompt),
-        learningRate: get(learningRate),
+        learningRate: get(learningRate)/1000,
         imageBase64: get(maskCanvasBase64),
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }
