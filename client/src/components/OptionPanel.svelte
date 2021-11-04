@@ -1,27 +1,70 @@
 <script lang="ts">
-    import { learningRate, prompt } from '../stores'
-    import { erasing, radius, softness, clear } from "../drawing/stores"
+    import DrawCanvas from '@/drawing/DrawCanvas.svelte'
+    import { learningRate, prompt, mode } from '../stores'
+    import * as optEvents from '../optimizeEvents'
+    import { socket, socketOpen } from "@/lib/socket";
+    import { Mode } from '../types'
+    export let maskCanvas: DrawCanvas
+    export let mainCanvas: DrawCanvas
 </script>
 
 <div id="optionPanel">
-    <input type="text" id="lname" name="lname" bind:value={$prompt}>
-    <button on:click={() => ($erasing = false)} class:selected={!$erasing}>
-        <img src="/pencil.svg" />
-    </button>
-    <button on:click={() => ($erasing = true)} class:selected={$erasing}>
-        <img src="/eraser.png" />
-    </button>
+    {#if $mode == Mode.MaskDraw && maskCanvas}
+        <input type="text" id="lname" name="lname" bind:value={$prompt}>
+        <button on:click={() => (maskCanvas.erasing = false)} class:selected={!maskCanvas.erasing}>
+            <img src="/pencil.svg" alt='draw-mask'/>
+        </button>
+        <button on:click={() => (maskCanvas.erasing = true)} class:selected={maskCanvas.erasing}>
+            <img src="/eraser.png" alt='erase-mask'/>
+        </button>
+
+        <button on:click={() => maskCanvas.clear()}>
+            <p> Clear Mask </p>
+        </button>
+        <p> Radius={maskCanvas.radius} </p>
+        <input type="range" bind:value={maskCanvas.radius} min=1 max=96/>
+        <p> Softness </p>
+        <input type="range" bind:value={maskCanvas.softness} min=0 max=20 step="any"/>
+        <p> learningRate </p>
+        <input type="range" bind:value={$learningRate} min=0 max=500.0 step=1/>
+        {$learningRate / 1000}
+        
+        {#if $socketOpen}
+            <button on:click={() => (optEvents.start())}>
+                <h4>Start</h4>
+            </button>
+        {:else}
+            <button on:click={() => (alert("SOCKET NOT CONNECTED :("))}> Start </button>
+            <p> Socket not open </p>
+        {/if}
     
-    <button on:click={() => clear()}>
-        <p> Clear Mask </p>
-    </button>
-    <p> Radius={$radius} </p>
-    <input type="range" bind:value={$radius} min=1 max=96/>
-    <p> Softness </p>
-    <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
-    <p> learningRate </p>
-    <input type="range" bind:value={$learningRate} min=0 max=500.0 step=1/>
-    {$learningRate / 1000}
+    {:else if $mode == Mode.DirectDraw && mainCanvas}
+        <input type="color" id="head" name="head" bind:value={mainCanvas.strokeColor}>
+        <label for="head">Head</label>
+        <p> Radius={mainCanvas.radius} </p>
+        <input type="range" bind:value={mainCanvas.radius} min=1 max=96/>
+        <p> Softness </p>
+        <input type="range" bind:value={mainCanvas.softness} min=0 max=20 step="any"/>
+        <button on:click={() => (console.log('here'))}>
+            <h4>Select Image</h4>
+        </button>
+    
+    {:else if $mode == Mode.Optimizing }
+        <button on:click={() => (optEvents.pause())}> 
+            <h4>Stop</h4>
+        </button>
+    {:else if $mode == Mode.PausedOptimizing }
+        <button on:click={() => (optEvents.accept())}> 
+            <h4>Accept</h4>
+        </button>
+        <button on:click={() => (optEvents.resume())}> 
+            <h4>Resume</h4>
+        </button>
+        <button on:click={() => (optEvents.discard())}> 
+            <h4>Discard</h4>
+        </button>
+    {/if}
+
     
 </div>
 
@@ -29,7 +72,7 @@
     #optionPanel {
         position: fixed;
         left: 0px;
-        top: 100px;
+        top: 60px;
         z-index: 2;
         display: flex;
         flex-direction: column;
@@ -38,9 +81,6 @@
         border-bottom-right-radius: 4px;
         align-items: center;
         border: 1px solid;
-    }
-    button {
-        cursor: pointer;
     }
     button > img {
         width: 50px;

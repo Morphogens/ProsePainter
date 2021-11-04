@@ -1,6 +1,7 @@
 
-export interface DrawLayer {
-    prompt: string
-    image: HTMLImageElement | null
-    imageBase64: string | null
+export enum Mode {
+    DirectDraw,
+    MaskDraw,
+    Optimizing,
+    PausedOptimizing,
 }
