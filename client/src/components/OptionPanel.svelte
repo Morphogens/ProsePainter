@@ -1,71 +1,110 @@
 <script lang="ts">
-    import DrawCanvas from '@/drawing/DrawCanvas.svelte'
-    import { learningRate, prompt, mode } from '../stores'
-    import * as optEvents from '../optimizeEvents'
-    import { socket, socketOpen } from "@/lib/socket";
-    import { Mode } from '../types'
-    export let maskCanvas: DrawCanvas
-    export let mainCanvas: DrawCanvas
+    import DrawCanvas from "@/drawing/DrawCanvas.svelte";
+    import { learningRate, prompt, mode, canvasSize } from "../stores";
+    import * as optEvents from "../optimizeEvents";
+    import { socketOpen } from "@/lib/socket";
+    import { Mode } from "../types";
+    import { loadImage } from "@/utils";
+    import { tick } from "svelte";
+    export let maskCanvas: DrawCanvas;
+    export let mainCanvas: DrawCanvas;
+
+    async function onFiles(event) {
+        const { files } = event.target;
+        if (files.length) {
+            const url = URL.createObjectURL(files[0]);
+            const image = await loadImage(url);
+            canvasSize.set([image.width, image.height])
+            await tick() // DrawCanvases get recreated.
+            mainCanvas.set(image)
+        }
+    }
 </script>
 
 <div id="optionPanel">
     {#if $mode == Mode.MaskDraw && maskCanvas}
-        <input type="text" id="lname" name="lname" bind:value={$prompt}>
-        <button on:click={() => (maskCanvas.erasing = false)} class:selected={!maskCanvas.erasing}>
-            <img src="/pencil.svg" alt='draw-mask'/>
+        <input type="text" id="lname" name="lname" bind:value={$prompt} />
+        <button
+            on:click={() => (maskCanvas.erasing = false)}
+            class:selected={!maskCanvas.erasing}
+        >
+            <img src="/pencil.svg" alt="draw-mask" />
         </button>
-        <button on:click={() => (maskCanvas.erasing = true)} class:selected={maskCanvas.erasing}>
-            <img src="/eraser.png" alt='erase-mask'/>
+        <button
+            on:click={() => (maskCanvas.erasing = true)}
+            class:selected={maskCanvas.erasing}
+        >
+            <img src="/eraser.png" alt="erase-mask" />
         </button>
 
         <button on:click={() => maskCanvas.clear()}>
-            <p> Clear Mask </p>
+            <p>Clear Mask</p>
         </button>
-        <p> Radius={maskCanvas.radius} </p>
-        <input type="range" bind:value={maskCanvas.radius} min=1 max=96/>
-        <p> Softness </p>
-        <input type="range" bind:value={maskCanvas.softness} min=0 max=20 step="any"/>
-        <p> learningRate </p>
-        <input type="range" bind:value={$learningRate} min=0 max=500.0 step=1/>
+        <p>Radius={maskCanvas.radius}</p>
+        <input type="range" bind:value={maskCanvas.radius} min="1" max="96" />
+        <p>Softness</p>
+        <input
+            type="range"
+            bind:value={maskCanvas.softness}
+            min="0"
+            max="20"
+            step="any"
+        />
+        <p>learningRate</p>
+        <input
+            type="range"
+            bind:value={$learningRate}
+            min="0"
+            max="500.0"
+            step="1"
+        />
         {$learningRate / 1000}
-        
+
         {#if $socketOpen}
-            <button on:click={() => (optEvents.start())}>
+            <button on:click={() => optEvents.start()}>
                 <h4>Start</h4>
             </button>
         {:else}
-            <button on:click={() => (alert("SOCKET NOT CONNECTED :("))}> Start </button>
-            <p> Socket not open </p>
+            <button on:click={() => alert("SOCKET NOT CONNECTED :(")}>
+                Start
+            </button>
+            <p>Socket not open</p>
         {/if}
-    
     {:else if $mode == Mode.DirectDraw && mainCanvas}
-        <input type="color" id="head" name="head" bind:value={mainCanvas.strokeColor}>
+        <input
+            type="color"
+            id="head"
+            name="head"
+            bind:value={mainCanvas.strokeColor}
+        />
         <label for="head">Head</label>
-        <p> Radius={mainCanvas.radius} </p>
-        <input type="range" bind:value={mainCanvas.radius} min=1 max=96/>
-        <p> Softness </p>
-        <input type="range" bind:value={mainCanvas.softness} min=0 max=20 step="any"/>
-        <button on:click={() => (console.log('here'))}>
-            <h4>Select Image</h4>
-        </button>
-    
-    {:else if $mode == Mode.Optimizing }
-        <button on:click={() => (optEvents.pause())}> 
+        <p>Radius={mainCanvas.radius}</p>
+        <input type="range" bind:value={mainCanvas.radius} min="1" max="96" />
+        <p>Softness</p>
+        <input
+            type="range"
+            bind:value={mainCanvas.softness}
+            min="0"
+            max="20"
+            step="any"
+        />
+        <p>Select an image</p>
+        <input type="file" accept=".jpg, .jpeg, .png" on:change={onFiles} />
+    {:else if $mode == Mode.Optimizing}
+        <button on:click={() => optEvents.pause()}>
             <h4>Stop</h4>
         </button>
-    {:else if $mode == Mode.PausedOptimizing }
-        <button on:click={() => (optEvents.accept())}> 
+    {:else if $mode == Mode.PausedOptimizing}
+        <button on:click={() => optEvents.accept()}>
             <h4>Accept</h4>
         </button>
-        <button on:click={() => (optEvents.resume())}> 
+        <button on:click={() => optEvents.resume()}>
             <h4>Resume</h4>
         </button>
-        <button on:click={() => (optEvents.discard())}> 
+        <button on:click={() => optEvents.discard()}>
             <h4>Discard</h4>
         </button>
     {/if}
-
-    
 </div>
 
 <style>
@@ -89,7 +128,7 @@
     button.selected {
         background: #ffa50080;
     }
-    input{
+    input {
         width: 96px;
     }
     input[type="range"][orient="vertical"] {

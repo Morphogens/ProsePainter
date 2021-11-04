@@ -1,22 +1,21 @@
 <script lang="ts">
-    (window as any).global = window;
     import InfiniteViewer from "@/drawing/svelte-infinite-viewer";
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import OptionPanel from "@/components/OptionPanel.svelte";
-    // import { socket, socketOpen } from "@/lib/socket";
-    import { onMount, tick } from "svelte";
-    // import Indicator from "@/components/Indicator.svelte";
+    import { onMount } from "svelte";
     import { mode } from "./stores";
     import startBackgroundUrl from "./assets/startImage0.jpeg";
     import { loadImage } from "./utils";
     import { Mode } from "./types";
-    import { maskCanvasBase64, mainCanvasBase64, lastOptimizationResult, mainCanvas, maskCanvas } from "./stores";
-    const width = 512;
-    const height = 512;
-    // let mainCanvas: DrawCanvas;
-    // let maskCanvas: DrawCanvas;
-    // let setMainCanvas: Function
-    
+    import {
+        maskCanvasBase64,
+        mainCanvasBase64,
+        lastOptimizationResult,
+        mainCanvas,
+        maskCanvas,
+        canvasSize
+    } from "./stores";
+
     function onKeyDown(e: KeyboardEvent) {
         // if (e.code === "KeyZ" && (e.metaKey === true || e.ctrlKey === true)) {
         //     if (e.shiftKey) {
@@ -30,16 +29,12 @@
     function onKeyUp(e: KeyboardEvent) {}
     onMount(async () => {
         $mainCanvas.set(await loadImage(startBackgroundUrl));
-        $mainCanvas.strokeColor = "#e66465" 
+        $mainCanvas.strokeColor = "#e66465";
     });
+    // log
 </script>
 
 <svelte:window on:keydown={onKeyDown} on:keyup={onKeyUp} />
-
-<!-- <div class="flex items-center px-2 py-1">
-    <Indicator state={$socketOpen} />
-    <div class="ml-1">Connection is {$socketOpen ? "open" : "closed"}</div>
-</div> -->
 
 <div id="modeToggle">
     <button
@@ -60,28 +55,27 @@
     rangeX={[-256, 256]}
     rangeY={[-256, 256]}
 >
-    <div class="viewport" style="width:{width}px">
-        <div id="content" style="width:{width}px;height:{height}px">
+    <div class="viewport" style="width:{$canvasSize[0]}px">
+        <div id="content" style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px">
             <DrawCanvas
-                {width}
-                {height}
+                width={$canvasSize[0]}
+                height={$canvasSize[1]}
                 radius={4}
                 id="mainCanvas"
                 bind:canvasBase64={$mainCanvasBase64}
                 bind:this={$mainCanvas}
             />
-            <!-- bind:set={setMainCanvas} -->
-            <div class:hidden={$mode == Mode.DirectDraw} style='opacity:0.5;'>
+            <div class:hidden={$mode == Mode.DirectDraw} style="opacity:0.5;">
                 <DrawCanvas
-                    {width}
-                    {height}
+                    width={$canvasSize[0]}
+                    height={$canvasSize[1]}
                     id="maskCanvas"
                     bind:canvasBase64={$maskCanvasBase64}
                     bind:this={$maskCanvas}
                 />
             </div>
             {#if $lastOptimizationResult}
-                <img id='optPreview' src={$lastOptimizationResult.src}/>
+                <img id="optPreview" src={$lastOptimizationResult.src} />
             {/if}
         </div>
     </div>
@@ -96,14 +90,14 @@
         left: 0px;
         position: absolute;
     }
-    #debugMask  {
+    /* #debugMask  {
         position: fixed;
         bottom: 0px;
         right: 0px;
         border:1px solid black;
         width: 256px;
         height: 256px;
-    }
+    } */
     .hidden {
         display: none;
     }
@@ -119,7 +113,6 @@
         transition-duration: 0.2s;
         background-color: rgb(196, 196, 196);
         color: white;
-
         border: none;
         padding: 4px 16px;
         text-align: center;
@@ -130,27 +123,13 @@
         cursor: pointer;
     }
     :global(button.selected) {
-        background-color: #4CAF50; /* Green */
+        background-color: #4caf50; /* Green */
     }
-
-    /* #backgroundCanvas { */
-    /* } */
-    /* #previewCanvas {
-        top: 0px;
-        position: absolute;
-        pointer-events: none;
-    } */
     #content {
         display: flex;
-        /* border-bottom: 1px dashed;    */
-    }
-    #canvasButtons {
-        display: flex;
-        justify-content: space-between;
     }
     :global(.viewer) {
         border: 1px solid black;
-        /* position: relative; */
         top: 0px;
         left: 0px;
         position: absolute !important;
@@ -158,10 +137,7 @@
         height: 100vh;
         background: gray;
     }
-    :global(.viewer) {
-    }
     .viewport {
-        /* pointer-events: none; */
         position: relative;
         margin: 100px;
         background: white;
