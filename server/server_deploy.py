@@ -5,35 +5,48 @@ import threading
 from typing import *
 
 import fastapi
+import torchvision
 import uvicorn
 import numpy as np
 from fastapi import WebSocket
 from loguru import logger
 from PIL import Image
 
-from server.server_modelling import LayerOptimizer
+from server.server_modelling import MaskOptimizer
 from server.server_modelling_utils import (
     process_mask,
     get_limits_from_mask,
-    get_crop_from_limits,
-    scale_crop,
+    get_crop_tensor_from_img,
+    scale_crop_tensor,
     merge_gen_img_into_canvas,
 )
-from server.server_data_utils import decode_base64_img, pil_to_base64
-from server.server_config import LOGGER_LEVEL
+from server.server_data_utils import base64_to_pil, pil_to_base64
+from server.server_config import DEBUG, DEBUG_OUT_DIR
 
 app = fastapi.FastAPI()
 
 
-class AsyncResult:
+class AsyncManager:
+    """
+    Manage updates in the async loop.
+    """
     def __init__(self, ):
+        """
+        Set up async loop.
+        """
         self.async_event_loop = asyncio.Event()
         self.async_value = None
 
     def set_async_value(
         self,
-        async_value,
+        async_value: Any,
     ):
+        """
+        Add value to the async loop.
+
+        Args:
+            async_value (Any): value to set on the async loop.
+        """
         self.async_value = async_value
         self.async_event_loop.set()
 
@@ -48,20 +61,32 @@ class AsyncResult:
         return self.async_value
 
 
-async_result = None
+async_manager = None
 
 
 @app.on_event("startup")
-async def startup_event():
-    global async_result
-    async_result = AsyncResult()
+async def startup_event() -> None:
+    """
+    Stuff to do when the app starts.
+    """
+    global async_manager
+    async_manager = AsyncManager()
 
 
 class UserSession:
+    """
+    Functionalities and settings of each user connection.
+    """
     def __init__(
         self,
         websocket: WebSocket,
-    ):
+    ) -> None:
+        """
+        Setup the setting of a user.
+
+        Args:
+            websocket (WebSocket): websocket used to communicate with the user.
+        """
         self.websocket = websocket
 
         self.stop_generation = False
@@ -77,16 +102,29 @@ class UserSession:
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-    def optimize_layer(
+    def optimize_canvas(
         self,
         prompt: str,
         canvas_img: str,
         mask: str,
         lr: float = 0.5,
         style_prompt: str = "",
+        padding_percent: float = 5.,
         **kwargs,
-    ):
-        canvas_img = decode_base64_img(canvas_img)
+    ) -> None:
+        """
+        Optimizes the region set by `mask` in the `canvas_img` using the settings provided.
+
+        Args:
+            prompt (str): prompt that will guide the optimization.
+            canvas_img (str): base64 encoded canvas image to optimize.
+            mask (str): base64 encoded mask determining the region to optimize in the canvas.
+            lr (float, optional): learning rate. Defaults to 0.5.
+            style_prompt (str, optional): prompt describing the style of the optimization. Defaults to "".
+            padding_percent (float, optional): percent of external context to take into account in each generation. Defaults to 5..
+
+        """
+        canvas_img = base64_to_pil(canvas_img)
         canvas_img = np.float32(canvas_img.convert("RGB")) / 255.
 
         img_height, img_width, _ch = canvas_img.shape
@@ -95,49 +133,65 @@ class UserSession:
             img_height,
         )
 
-        mask = decode_base64_img(mask)
-        mask.save(f"generations/{'_'.join(prompt.split())}_mask.png")
+        mask = base64_to_pil(mask)
+        if DEBUG:
+            os.makedirs(
+                DEBUG_OUT_DIR,
+                exist_ok=True,
+            )
+            mask.save(
+                os.path.join(DEBUG_OUT_DIR,
+                             f"{'_'.join(prompt.split())}_mask.png"))
+
         mask = process_mask(
             mask,
             target_img_size,
         )
-        Image.fromarray(np.uint8(mask * 255)).save(
-            f"generations/{'_'.join(prompt.split())}_processed_mask.png")
 
-        crop_limits = get_limits_from_mask(mask, )
+        if DEBUG:
+            os.makedirs(
+                DEBUG_OUT_DIR,
+                exist_ok=True,
+            )
+            Image.fromarray(np.uint8(mask * 255)).save(
+                os.path.join(DEBUG_OUT_DIR,
+                             f"{'_'.join(prompt.split())}_processed_mask.jpg"))
 
-        img_crop = get_crop_from_limits(
+        crop_limits = get_limits_from_mask(
+            mask,
+            padding_percent,
+        )
+
+        img_crop_tensor = get_crop_tensor_from_img(
             canvas_img,
             crop_limits,
         )
-        img_crop = scale_crop(img_crop)
+        img_crop_tensor = scale_crop_tensor(img_crop_tensor)
 
-        mask_crop = get_crop_from_limits(
+        mask_crop_tensor = get_crop_tensor_from_img(
             mask[..., None],
             crop_limits,
         )
-        mask_crop = scale_crop(mask_crop)
+        mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        layer = LayerOptimizer(
+        mask_optimizer = MaskOptimizer(
             prompt=prompt,
-            cond_img=img_crop,
-            mask=mask_crop,
+            cond_img=img_crop_tensor,
+            mask=mask_crop_tensor,
             lr=lr,
         )
 
         gen_img = None
-        counter = 0
+        optim_step = 0
         while not self.stop_generation:
-            gen_img = layer.optimize()
+            if self.stop_generation:
+                break
 
-            # gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
-            #     gen_img[0])
-            # gen_img_pil.save(
-            #     f"generations/{'_'.join(prompt.split())}_{optim_step}.jpg")
+            gen_img = mask_optimizer.optimize()
 
             updated_canvas = merge_gen_img_into_canvas(
                 gen_img,
-                mask_crop,
+                mask_crop_tensor,
                 canvas_img,
                 crop_limits,
             )
@@ -146,34 +200,42 @@ class UserSession:
                                                           255))
             updated_canvas_uri = pil_to_base64(updated_canvas_pil)
 
-            async_result.set_async_value({
+            async_manager.set_async_value({
                 "image": updated_canvas_uri,
             })
 
-            # os.makedirs(
-            #     "generations",
-            #     exist_ok=True,
-            # )
-            # updated_canvas_pil.save(
-            #     f"generations/canvas_{'_'.join(prompt.split())}_{counter}.jpg")
+            if DEBUG:
+                os.makedirs(
+                    DEBUG_OUT_DIR,
+                    exist_ok=True,
+                )
 
-            if self.stop_generation:
-                break
+                gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
+                    gen_img[0])
+                gen_img_pil.save(
+                    os.path.join(
+                        DEBUG_OUT_DIR,
+                        f"{'_'.join(prompt.split())}_{optim_step}.jpg"))
 
-            counter += 1
+                updated_canvas_pil.save(
+                    os.path.join(
+                        DEBUG_OUT_DIR,
+                        f"canvas_{'_'.join(prompt.split())}_{optim_step}.jpg"))
 
-        # Image.fromarray(np.uint8(updated_canvas * 255)).save(
-        #     f"generations/final_{'_'.join(prompt.split())}_{optim_step}.jpg")
+            optim_step += 1
 
-        return updated_canvas
+        return
 
     async def listen_loop(self, ):
+        """
+        Handle incoming messages from the client.
+        """
         try:
             while True:
                 msg_dict = await self.websocket.receive_json()
 
                 topic = msg_dict["topic"]
-                logger.info(f"GOT TOPIC {topic}")
+                logger.info(f"RECEIVED TOPIC {topic}")
 
                 data_dict = msg_dict["data"]
 
@@ -183,19 +245,18 @@ class UserSession:
                 elif topic == "start-generation":
                     self.stop_generation = False
 
-                    prompt = data_dict["prompt"]
-                    canvas_img = data_dict["backgroundImg"]
-                    mask = data_dict["imageBase64"]
-                    lr = data_dict["learningRate"]
+                    optimize_kwargs = {
+                        "prompt": data_dict["prompt"],
+                        "canvas_img": data_dict["backgroundImg"],
+                        "mask": data_dict["imageBase64"],
+                        "lr": data_dict["learningRate"],
+                        "style_prompt": "",
+                        "padding_percent": 5.,
+                    }
 
                     optimize_layer_thread = threading.Thread(
-                        target=self.optimize_layer,
-                        args=(
-                            prompt,
-                            canvas_img,
-                            mask,
-                            lr,
-                        ),
+                        target=self.optimize_canvas,
+                        kwargs=optimize_kwargs,
                     )
                     optimize_layer_thread.start()
 
@@ -206,15 +267,24 @@ class UserSession:
             logger.exception("Error", e)
 
     async def send_loop(self):
+        """
+        Handle the emission of messages to the client.
+        """
         while True:
-            result_dict = await async_result.wait()
+            result_dict = await async_manager.wait()
             await self.websocket.send_json(result_dict)
 
             logger.info(f"{self.user_id} ASYNC RESULTS SENT!")
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, ):
+async def websocket_endpoint(websocket: WebSocket, ) -> None:
+    """
+    Handle websocket connections
+
+    Args:
+        websocket (WebSocket): incoming websocket connection.
+    """
     try:
         await websocket.accept()
         logger.info(f"WEBSOCKET CONNECTED!")
@@ -224,13 +294,18 @@ async def websocket_endpoint(websocket: WebSocket, ):
         await user_session.run()
 
     except Exception as e:
-        logger.info(f"WEBSOCKET CONNECTION ERROR: {e}")
+        logger.error(f"WEBSOCKET CONNECTION ERROR: {e}")
 
     finally:
         logger.info("WEBSOCKET DISCONNECTED.")
 
+    return
+
 
 def main():
+    """
+    Launch the app.
+    """
     logger.info("Starting server...")
 
     loop = "asyncio"
@@ -241,11 +316,18 @@ def main():
         loop=loop,
     )
 
+    return
+
+
+if DEBUG:
+    level = "DEBUG"
+else:
+    level = "DEBUG"
 
 logger.remove()
 logger.add(
     sys.stderr,
-    level=LOGGER_LEVEL,
+    level=level,
 )
 
 if __name__ == "__main__":
