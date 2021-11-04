@@ -2,7 +2,7 @@ import { writable,readable, derived, get } from 'svelte/store'
 import { socket, messageServer } from "@/lib/socket";
 import startBackgroundUrl from './assets/startImage0.jpeg'
 import { loadImage, imgTob64 } from './utils';
-import { canvasBase64 } from './drawing/stores'
+// import { canvasBase64 } from './drawing/stores'
 
 export const isOptimizing = writable(false)
 export const lastOptimizationResult = writable(new Image(512, 512))
@@ -20,7 +20,8 @@ interface StartGenerationData {
 export function startGeneration() {
     const data: StartGenerationData = {
         prompt: get(prompt),
-        imageBase64: get(canvasBase64),
+        imageBase64: "",
+        // imageBase64: get(canvasBase64),
         learningRate: get(learningRate),
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }

@@ -7,13 +7,13 @@
     import { onMount, tick } from "svelte";
     import Indicator from "@/components/Indicator.svelte";
     import { lastOptimizationResult, isOptimizing, startGeneration, stopGeneration } from './stores'
-    import { canvasBase64 } from "./drawing/stores";
 
     let backgroundCanvas:HTMLCanvasElement
     let backgroundCanvasCTX:CanvasRenderingContext2D
     const width = 512
     const height = 512
-    
+    let maskCanvas:DrawCanvas
+
     $: if (backgroundCanvas && $lastOptimizationResult) {
         backgroundCanvasCTX.drawImage($lastOptimizationResult, 0, 0)
     }
@@ -31,6 +31,9 @@
     function onKeyUp(e: KeyboardEvent) {}
     onMount(() => {
         backgroundCanvasCTX = backgroundCanvas.getContext('2d')
+        console.log(maskCanvas);
+        maskCanvas.clear()
+        
     })
 </script>
 
@@ -39,7 +42,8 @@
     <Indicator state={$socketOpen} />
     <div class="ml-1">Connection is {$socketOpen ? "open" : "closed"}</div>
 </div>
-<OptionPanel />
+
+<OptionPanel drawCanvas={maskCanvas}/>
 
 <InfiniteViewer
     className="viewer"
@@ -51,7 +55,7 @@
         <div id="content" style="width:{width}px;height:{height}px">
             <!-- <img bind:this={backgroundImage} alt=''> -->
             <canvas id ='backgroundCanvas' bind:this={backgroundCanvas} {width} {height} />
-            <DrawCanvas {width} {height}/>
+            <DrawCanvas {width} {height} bind:this={maskCanvas}/>
         </div>
         <div id="canvasButtons">
             {#if $isOptimizing}
@@ -64,7 +68,6 @@
             {/if}
         </div>
     </div>
-    <img id='debugMask' src={$canvasBase64}>
 </InfiniteViewer>
 
 <style>

@@ -1,12 +1,18 @@
+<svelte:options accessors/>
 <script lang="ts">
     import { onMount } from "svelte"
     import { drawLines } from './drawUtils'
-    import { erasing, radius, softness, opacity, canvasChanged, drawContext, canvasBase64 } from "./stores";
     import { imageContour } from '../imageContour'
     import { loadImage } from "@/utils";
+    
     export let width: number
     export let height: number
-    
+    export let radius = 3
+    export let opacity = 3
+    export let softness = 3
+    export let erasing = false
+    export let canvasBase64 = ''
+
     let canvas: HTMLCanvasElement
     let ctx: CanvasRenderingContext2D
     
@@ -20,16 +26,34 @@
     let mouseover = false
     let currentStroke: number[][] = []
 
+
+    function canvasChanged() {
+        const base64 = canvas.toDataURL()
+        // history.push(get(canvasBase64))
+        canvasBase64 = base64
+        window.localStorage.setItem('canvasBase64', base64)
+    }
+
+    export function clear() {
+        ctx.clearRect(0, 0, 512, 512)
+        canvasChanged()
+    }
+    
+    export function set(src:CanvasImageSource) {
+        ctx.drawImage(src, 0, 0)
+    }
+
     onMount(async () => {
         ctx = canvas.getContext('2d')
         outlinesCtx = outlinesCanvas.getContext('2d')
         currentStrokeCtx = currentStrokeCanvas.getContext('2d')
-        drawContext.set({ canvas, ctx })
+        // drawContext.set({ canvas, ctx })
         // Draw the start image that was saved
         const last = window.localStorage.getItem('canvasBase64')
         if (last) {
             ctx.drawImage(await loadImage(last), 0, 0)
-            canvasBase64.set(last)
+            // canvasBase64.set(last)
+            canvasBase64 = last
             drawContours(imageContour(canvas, ctx) as number[][][])
         }
     })
@@ -42,14 +66,11 @@
             drawLines( outlinesCtx, poly)
         }
     }
-
     // Listen for changes to the canvas and update contours.
-    canvasBase64.subscribe(($canvasBase64) => {
-        if ($canvasBase64) {
-            drawContours(imageContour(canvas, ctx) as number[][][])
-        }
-    })
-    
+    $: if (canvasBase64.length && ctx) {
+        drawContours(imageContour(canvas, ctx) as number[][][])
+    }
+
     function strokeDone() {
         if (!mouseDown){
             return
@@ -65,20 +86,20 @@
         const [x, y] = [event.offsetX, event.offsetY];
         if (mouseDown) {
             currentStroke.push([x, y])
-            if ($erasing) {
+            if (erasing) {
                 ctx.filter = 'none';
                 ctx.globalCompositeOperation = 'destination-out'
                 ctx.strokeStyle = 'rgba(255,255,255,1)'
-                ctx.lineWidth = $radius
+                ctx.lineWidth = radius
                 ctx.lineCap = 'round'
                 ctx.lineJoin = 'round'
                 drawLines(ctx, currentStroke)
             } else {
                 ctx.globalCompositeOperation = 'destination-over'
-                currentStrokeCtx.globalAlpha = 1 - $opacity;
-                currentStrokeCtx.filter = `blur(${$softness}px)`;
+                currentStrokeCtx.globalAlpha = 1 - opacity;
+                currentStrokeCtx.filter = `blur(${softness}px)`;
                 currentStrokeCtx.strokeStyle = 'black'
-                currentStrokeCtx.lineWidth = $radius
+                currentStrokeCtx.lineWidth = radius
                 currentStrokeCtx.lineCap = 'round'
                 currentStrokeCtx.lineJoin = 'round'
                 currentStrokeCtx.clearRect(0, 0, width, height)

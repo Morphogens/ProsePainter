@@ -1,27 +1,32 @@
 <script lang="ts">
+    import DrawCanvas from '@/drawing/DrawCanvas.svelte'
     import { learningRate, prompt } from '../stores'
-    import { erasing, radius, softness, clear } from "../drawing/stores"
+    export let drawCanvas: DrawCanvas
+
 </script>
 
 <div id="optionPanel">
+    {#if drawCanvas}
     <input type="text" id="lname" name="lname" bind:value={$prompt}>
-    <button on:click={() => ($erasing = false)} class:selected={!$erasing}>
+    <button on:click={() => (drawCanvas.erasing = false)} class:selected={!drawCanvas.erasing}>
         <img src="/pencil.svg" />
     </button>
-    <button on:click={() => ($erasing = true)} class:selected={$erasing}>
+    <button on:click={() => (drawCanvas.erasing = true)} class:selected={drawCanvas.erasing}>
         <img src="/eraser.png" />
     </button>
     
-    <button on:click={() => clear()}>
+    
+    <button on:click={() => drawCanvas.clear()}>
         <p> Clear Mask </p>
     </button>
-    <p> Radius={$radius} </p>
-    <input type="range" bind:value={$radius} min=1 max=96/>
+    <p> Radius={drawCanvas.radius} </p>
+    <input type="range" bind:value={drawCanvas.radius} min=1 max=96/>
     <p> Softness </p>
-    <input type="range" bind:value={$softness} min=0 max=20 step="any"/>
+    <input type="range" bind:value={drawCanvas.softness} min=0 max=20 step="any"/>
     <p> learningRate </p>
     <input type="range" bind:value={$learningRate} min=0 max=500.0 step=1/>
     {$learningRate / 1000}
+    {/if}
     
 </div>
 
