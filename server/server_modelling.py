@@ -1,4 +1,5 @@
 import os
+import functools
 from typing import *
 
 import torch
@@ -25,6 +26,7 @@ class ModelFactory:
         """
         self.taming_decoder = None
         self.aphantasia = None
+        self.esrgan = None
 
     def load_model(
         self,
@@ -56,6 +58,23 @@ class ModelFactory:
                 self.aphantasia.eval()
 
             model = self.aphantasia
+
+        if model_name == "esrgan":
+            if self.esrgan is None:
+                if not os.path.exists(ESRGAN_MODEL_PATH):
+                    download_file_from_google_drive(
+                        '1TPrz5QKd8DHHt1k8SRtm6tMiPjz_Qene',
+                        ESRGAN_MODEL_PATH,
+                    )
+
+                    logger.debug(f"ESRGAN downloaded in {ESRGAN_MODEL_PATH}")
+
+
+                self.esrgan = RRDBNet(3, 3, 64, 23, gc=32,)
+                self.esrgan.load_state_dict(torch.load(ESRGAN_MODEL_PATH), strict=True,)
+                self.esrgan.eval()
+
+            model = self.esrgan
 
         model = model.to(DEVICE)
 
@@ -205,6 +224,126 @@ class MaskOptimizer:
         )
 
         return gen_img
+
+
+# NOTE: code from https://github.com/xinntao/ESRGAN
+def make_layer(block, n_layers):
+    layers = []
+    for _ in range(n_layers):
+        layers.append(block())
+    return torch.nn.Sequential(*layers)
+
+
+# NOTE: code from https://github.com/xinntao/ESRGAN
+class ResidualDenseBlock_5C(torch.nn.Module):
+    def __init__(self, nf=64, gc=32, bias=True):
+        super(ResidualDenseBlock_5C, self).__init__()
+        # gc: growth channel, i.e. intermediate channels
+        self.conv1 = torch.nn.Conv2d(nf, gc, 3, 1, 1, bias=bias)
+        self.conv2 = torch.nn.Conv2d(nf + gc, gc, 3, 1, 1, bias=bias)
+        self.conv3 = torch.nn.Conv2d(nf + 2 * gc, gc, 3, 1, 1, bias=bias)
+        self.conv4 = torch.nn.Conv2d(nf + 3 * gc, gc, 3, 1, 1, bias=bias)
+        self.conv5 = torch.nn.Conv2d(nf + 4 * gc, nf, 3, 1, 1, bias=bias)
+        self.lrelu = torch.nn.LeakyReLU(negative_slope=0.2, inplace=True)
+
+        # initialization
+        # mutil.initialize_weights([self.conv1, self.conv2, self.conv3, self.conv4, self.conv5], 0.1)
+
+    def forward(self, x):
+        x1 = self.lrelu(self.conv1(x))
+        x2 = self.lrelu(self.conv2(torch.cat((x, x1), 1)))
+        x3 = self.lrelu(self.conv3(torch.cat((x, x1, x2), 1)))
+        x4 = self.lrelu(self.conv4(torch.cat((x, x1, x2, x3), 1)))
+        x5 = self.conv5(torch.cat((x, x1, x2, x3, x4), 1))
+        return x5 * 0.2 + x
+
+
+# NOTE: code from https://github.com/xinntao/ESRGAN
+class RRDB(torch.nn.Module):
+    '''Residual in Residual Dense Block'''
+
+    def __init__(self, nf, gc=32):
+        super(RRDB, self).__init__()
+        self.RDB1 = ResidualDenseBlock_5C(nf, gc)
+        self.RDB2 = ResidualDenseBlock_5C(nf, gc)
+        self.RDB3 = ResidualDenseBlock_5C(nf, gc)
+
+    def forward(self, x):
+        out = self.RDB1(x)
+        out = self.RDB2(out)
+        out = self.RDB3(out)
+        return out * 0.2 + x
+
+
+# NOTE: code from https://github.com/xinntao/ESRGAN
+class RRDBNet(torch.nn.Module):
+    def __init__(self, in_nc, out_nc, nf, nb, gc=32):
+        super(RRDBNet, self).__init__()
+        RRDB_block_f = functools.partial(RRDB, nf=nf, gc=gc)
+
+        self.conv_first = torch.nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True)
+        self.RRDB_trunk = make_layer(RRDB_block_f, nb)
+        self.trunk_conv = torch.nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        #### upsampling
+        self.upconv1 = torch.nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        self.upconv2 = torch.nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        self.HRconv = torch.nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        self.conv_last = torch.nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
+
+        self.lrelu = torch.nn.LeakyReLU(negative_slope=0.2, inplace=True)
+
+    def forward(self, x):
+        fea = self.conv_first(x)
+        trunk = self.trunk_conv(self.RRDB_trunk(fea))
+        fea = fea + trunk
+
+        fea = self.lrelu(self.upconv1(torch.nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+        fea = self.lrelu(self.upconv2(torch.nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+        out = self.conv_last(self.lrelu(self.HRconv(fea)))
+
+        return out
+
+class ESRGAN:
+    def __init__(
+        self, 
+        model_path: str,
+    ) -> None:
+        self.model = model_factory.load_model("esrgan")
+
+        self.scale = 4
+
+    def upscale_img(self, img: np.ndarray, num_chunks:int=1,) -> np.ndarray:
+        img_size = list(np.int32(np.asarray(img.shape)/num_chunks))[::-1]
+        img = torch.tensor(img).permute(-1, 0, 1).to(DEVICE)
+        # img = torchvision.transforms.PILToTensor()(pil_img) / 255.
+
+        upscaled_img_shape = (3, img.size[0]*self.scale, img.size[1]*self.scale)
+        upscaled_img = np.zeros(upscaled_img_shape)
+
+        for h_idx in range(num_chunks):
+            for w_idx in range(num_chunks):
+                img_crop = img[
+                    :,
+                    h_idx*img_size[0]:(h_idx+1)*img_size[0], 
+                    w_idx*img_size[1]:(w_idx+1)*img_size[1],
+                ]
+
+                img_crop = img_crop[None, :].to(DEVICE)
+
+                with torch.no_grad():
+                    upscaled_crop = model(img_crop).data.squeeze().float().cpu().clamp_(0, 1).numpy()
+
+                upscaled_img[
+                    :,
+                    h_idx*pil_img.size[1]:(h_idx+1)*pil_img.size[1], 
+                    w_idx*pil_img.size[0]:(w_idx+1)*pil_img.size[0],
+                ] = upscaled_crop
+                
+
+        upscaled_img = np.transpose(upscaled_img[[2, 1, 0], :, :], (1, 2, 0))
+        upscaled_img = (upscaled_img * 255.0).round()
+
+        return upscaled_img
 
 
 # NOTE: keeping this code because it includes cool stuff such as regularizers.

@@ -12,7 +12,7 @@ from fastapi import WebSocket
 from loguru import logger
 from PIL import Image
 
-from server.server_modelling import MaskOptimizer
+from server.server_modelling import MaskOptimizer, ESRGAN
 from server.server_modelling_utils import (
     process_mask,
     get_limits_from_mask,
@@ -78,10 +78,12 @@ class UserSession:
         self.websocket = websocket
 
         self.stop_generation = False
+        self.mask_optimizer = None
 
         self.user_id = str(self.websocket['client'][1])
 
         self.async_manager = AsyncManager()
+
 
     async def run(self):
         await asyncio.wait(
@@ -164,14 +166,16 @@ class UserSession:
         )
         mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        mask_optimizer = MaskOptimizer(
-            prompt=prompt,
-            cond_img=img_crop_tensor,
-            mask=mask_crop_tensor,
-            lr=lr,
-        )
-
+        if self_mask_optimizer is None:
+            self.mask_optimizer = MaskOptimizer(
+                prompt=prompt,
+                cond_img=img_crop_tensor,
+                mask=mask_crop_tensor,
+                lr=lr,
+            )
+        
         mask_optimizer.optimize_reconstruction()
+
 
         gen_img = None
         optim_step = 0
@@ -180,6 +184,8 @@ class UserSession:
                 break
 
             gen_img = mask_optimizer.optimize()
+
+            
 
             updated_canvas = merge_gen_img_into_canvas(
                 gen_img,
@@ -219,6 +225,50 @@ class UserSession:
 
         return
 
+    def upscale_canvas(
+        self,
+        canvas_img: str,
+        mask: str,
+        **kwargs,
+    ):
+        esrgan = ESRGAN()
+        
+        canvas_img = base64_to_pil(canvas_img)
+        canvas_img = np.float32(canvas_img.convert("RGB")) / 255.
+
+        img_height, img_width, _ch = canvas_img.shape
+        target_img_size = (
+            img_width,
+            img_height,
+        )
+
+        mask = base64_to_pil(mask)
+        mask = process_mask(
+            mask,
+            target_img_size,
+        )
+        
+        crop_limits = get_limits_from_mask(
+            mask,
+            padding_percent,
+        )
+
+        img_crop_tensor = get_crop_tensor_from_img(
+            canvas_img,
+            crop_limits,
+        )
+        img_crop_tensor = scale_crop_tensor(img_crop_tensor)
+
+        mask_crop_tensor = get_crop_tensor_from_img(
+            mask[..., None],
+            crop_limits,
+        )
+        mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
+
+        num_chunks = np.ceil((img_height * img_width) / 256**2)
+        esrgan.upscale_img(img_crop_tensor*mask_crop_tensor, num_chunks,)
+
+
     async def listen_loop(self, ):
         """
         Handle incoming messages from the client.
@@ -235,7 +285,10 @@ class UserSession:
                 if topic == "initialize":
                     self.initialize = True
 
-                elif topic == "start-generation":
+                elif topic == "start-generation" or topic == "resume-generation":
+                    if topic != "resume-generation":
+                        self.mask_optimizer = None
+
                     self.stop_generation = False
 
                     optimize_kwargs = {
@@ -255,6 +308,7 @@ class UserSession:
 
                 elif topic == "stop-generation":
                     self.stop_generation = True
+
 
         except Exception as e:
             logger.exception("Error", e)
