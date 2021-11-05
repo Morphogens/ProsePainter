@@ -1,11 +1,12 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
 import { socket, messageServer } from "@/lib/socket";
-import { prompt, mode, learningRate, maskCanvasBase64, mainCanvasBase64, lastOptimizationResult, mainCanvas } from './stores'
+import { prompt, mode, learningRate, maskCanvasBase64, mainCanvasBase64, lastOptimizationResult, mainCanvas, stylePrompt } from './stores'
 import { imgTob64 } from './utils';
 
 interface StartGenerationData {
     prompt: string
+    stylePrompt: string,
     imageBase64: string
     learningRate: number
     backgroundImg: string
@@ -14,7 +15,8 @@ interface StartGenerationData {
 export function start() {
     const data: StartGenerationData = {
         prompt: get(prompt),
-        learningRate: get(learningRate)/1000,
+        stylePrompt: get(stylePrompt),
+        learningRate: get(learningRate) / 1000,
         imageBase64: get(maskCanvasBase64),
         backgroundImg: get(mainCanvasBase64),
     }
@@ -53,7 +55,8 @@ export function resume() {
     // like start() but use lastOptimizationResult instead of main canvas
     const data: StartGenerationData = {
         prompt: get(prompt),
-        learningRate: get(learningRate)/1000,
+        stylePrompt: get(stylePrompt),
+        learningRate: get(learningRate) / 1000,
         imageBase64: get(maskCanvasBase64),
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }

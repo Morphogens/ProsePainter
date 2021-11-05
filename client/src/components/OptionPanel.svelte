@@ -1,6 +1,6 @@
 <script lang="ts">
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
-    import { learningRate, prompt, mode, canvasSize } from "../stores";
+    import { learningRate, prompt, mode, canvasSize, stylePrompt } from "@/stores";
     import * as optEvents from "../optimizeEvents";
     import { socketOpen } from "@/lib/socket";
     import { Mode } from "../types";
@@ -23,7 +23,11 @@
 
 <div id="optionPanel">
     {#if $mode == Mode.MaskDraw && maskCanvas}
+        <p>What would you like to draw?</p>
         <input type="text" id="lname" name="lname" bind:value={$prompt} />
+        <p>In what style?</p>
+        <input type="text" id="lname" name="lname" bind:value={$stylePrompt} />
+        <br>
         <button
             on:click={() => (maskCanvas.erasing = false)}
             class:selected={!maskCanvas.erasing}
@@ -36,7 +40,7 @@
         >
             <img src="/eraser.png" alt="erase-mask" />
         </button>
-
+        <br>
         <button on:click={() => maskCanvas.clear()}>
             <p>Clear Mask</p>
         </button>
@@ -61,7 +65,7 @@
         {$learningRate / 1000}
 
         {#if $socketOpen}
-            <button on:click={() => optEvents.start()}>
+            <button on:click={() => optEvents.start()} style='background-color: #4caf50;'>
                 <h4>Start</h4>
             </button>
         {:else}
@@ -113,6 +117,7 @@
         left: 0px;
         top: 60px;
         z-index: 2;
+        width: 128px;
         display: flex;
         flex-direction: column;
         background: white;
@@ -130,6 +135,10 @@
     }
     input {
         width: 96px;
+    }
+    p {
+        text-align: center;
+        margin-bottom: 2px;
     }
     input[type="range"][orient="vertical"] {
         writing-mode: bt-lr; /* IE */
