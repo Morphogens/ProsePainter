@@ -61,18 +61,6 @@ class AsyncManager:
         return self.async_value
 
 
-async_manager = None
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """
-    Stuff to do when the app starts.
-    """
-    global async_manager
-    async_manager = AsyncManager()
-
-
 class UserSession:
     """
     Functionalities and settings of each user connection.
@@ -92,6 +80,8 @@ class UserSession:
         self.stop_generation = False
 
         self.user_id = str(self.websocket['client'][1])
+
+        self.async_manager = AsyncManager()
 
     async def run(self):
         await asyncio.wait(
@@ -181,6 +171,8 @@ class UserSession:
             lr=lr,
         )
 
+        mask_optimizer.optimize_reconstruction()
+
         gen_img = None
         optim_step = 0
         while not self.stop_generation:
@@ -200,7 +192,8 @@ class UserSession:
                                                           255))
             updated_canvas_uri = pil_to_base64(updated_canvas_pil)
 
-            async_manager.set_async_value({
+            self.async_manager.set_async_value({
+                "user_id": self.user_id,
                 "image": updated_canvas_uri,
             })
 
@@ -271,8 +264,9 @@ class UserSession:
         Handle the emission of messages to the client.
         """
         while True:
-            result_dict = await async_manager.wait()
-            await self.websocket.send_json(result_dict)
+            result_dict = await self.async_manager.wait()
+            if self.user_id == result_dict["user_id"]:
+                await self.websocket.send_json(result_dict)
 
             logger.info(f"{self.user_id} ASYNC RESULTS SENT!")
 
