@@ -21,3 +21,13 @@ export function imgTob64(img: HTMLImageElement): string {
     return canvas.toDataURL()
 }
 
+export function downloadCanvas(
+    canvas: HTMLCanvasElement,
+    filename: string = 'download.png'
+) {
+    const url = canvas.toDataURL()
+    const aDownloadLink = document.createElement('a')
+    aDownloadLink.download = filename
+    aDownloadLink.href = url
+    aDownloadLink.click()
+}
