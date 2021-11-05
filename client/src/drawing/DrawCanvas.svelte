@@ -46,6 +46,10 @@
         canvasChanged()
     }
 
+    export function getCanvas():HTMLCanvasElement {
+        return canvas
+    }
+
     onMount(async () => {
         ctx = canvas.getContext('2d')
         // outlinesCtx = outlinesCanvas.getContext('2d')

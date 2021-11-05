@@ -5,7 +5,8 @@
     import { onMount } from "svelte";
     import { mode } from "./stores";
     import startBackgroundUrl from "./assets/startImage0.jpeg";
-    import { loadImage } from "./utils";
+    import downloadUrl from "./assets/download.svg";
+    import { downloadCanvas, loadImage } from "./utils";
     import { Mode } from "./types";
     import {
         maskCanvasBase64,
@@ -13,7 +14,7 @@
         lastOptimizationResult,
         mainCanvas,
         maskCanvas,
-        canvasSize
+        canvasSize,
     } from "./stores";
 
     function onKeyDown(e: KeyboardEvent) {
@@ -49,6 +50,15 @@
 
 <OptionPanel maskCanvas={$maskCanvas} mainCanvas={$mainCanvas} />
 
+{#if $mode == Mode.DirectDraw || $mode == Mode.MaskDraw}
+    <button
+        id="downloadButton"
+        on:click={(e) => downloadCanvas($mainCanvas.getCanvas())}
+    >
+        <img src={downloadUrl} alt="download" />
+    </button>
+{/if}
+
 <InfiniteViewer
     className="viewer"
     usePinch={true}
@@ -56,7 +66,10 @@
     rangeY={[-256, 256]}
 >
     <div class="viewport" style="width:{$canvasSize[0]}px">
-        <div id="content" style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px">
+        <div
+            id="content"
+            style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px"
+        >
             <DrawCanvas
                 width={$canvasSize[0]}
                 height={$canvasSize[1]}
@@ -98,6 +111,7 @@
         width: 256px;
         height: 256px;
     } */
+    
     .hidden {
         display: none;
     }
@@ -146,4 +160,8 @@
     .hidden {
         display: none;
     }
+    #downloadButton {
+        position:fixed;right:10px;bottom:10px;z-index:1;background:white;border-radius:50%;width:50px;height:50px;padding:0px;
+    }
+
 </style>
