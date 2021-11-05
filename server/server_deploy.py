@@ -251,7 +251,7 @@ class UserSession:
                         "mask": data_dict["imageBase64"],
                         "lr": data_dict["learningRate"],
                         "style_prompt": "",
-                        "padding_percent": 5.,
+                        "padding_percent": 10.,
                     }
 
                     optimize_layer_thread = threading.Thread(
