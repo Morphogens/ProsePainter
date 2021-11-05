@@ -172,6 +172,7 @@ class UserSession:
                 cond_img=img_crop_tensor,
                 mask=mask_crop_tensor,
                 lr=lr,
+                style_prompt=style_prompt,
             )
         
         self.mask_optimizer.optimize_reconstruction()
@@ -296,7 +297,7 @@ class UserSession:
                         "canvas_img": data_dict["backgroundImg"],
                         "mask": data_dict["imageBase64"],
                         "lr": data_dict["learningRate"],
-                        "style_prompt": "",
+                        "style_prompt": data_dict["stylePrompt"],
                         "padding_percent": 10.,
                     }
 

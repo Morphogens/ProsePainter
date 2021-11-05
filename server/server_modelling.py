@@ -95,6 +95,7 @@ class MaskOptimizer:
         mask: np.ndarray,
         lr: float,
         rec_lr: float = 0.1,
+        style_prompt: str = "",
         **kwargs,
     ) -> None:
         """
@@ -117,6 +118,13 @@ class MaskOptimizer:
         text_latents = text_latents.detach()
         text_latents = text_latents.to(DEVICE)
         self.text_latents = text_latents
+        
+        self.style_latents = None
+        if style_prompt != "":
+            style_latents = self.model.get_clip_text_encodings(prompt, )
+            style_latents = style_latents.detach()
+            style_latents = style_latents.to(DEVICE)
+            self.style_latents = style_latents
 
         self.gen_latents = self.model.get_latents_from_img(cond_img, )
         self.gen_latents = self.gen_latents.to(DEVICE)
@@ -164,6 +172,8 @@ class MaskOptimizer:
         Returns:
             torch.Tensor: updated image.
         """
+        loss = 0
+
         gen_img = self.model.get_img_from_latents(self.gen_latents, )
         gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
 
@@ -184,8 +194,12 @@ class MaskOptimizer:
         img_aug = self.model.augment(gen_img, )
         img_latents = self.model.get_clip_img_encodings(img_aug, ).to(DEVICE)
 
-        loss = (self.text_latents -
+        loss += (self.text_latents -
                 img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+        
+        if self.style_latents is not None:
+            loss += (self.style_latents -
+                    img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
 
         # TODO: integrate other losses
         # loss = -10 * torch.cosine_similarity(
