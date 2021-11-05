@@ -48,8 +48,15 @@
         const canvas = activeDrawCanvas()
         cursorCtx.lineWidth = 1
         cursorCtx.strokeStyle = 'white'
-        cursorCtx.fillStyle = canvas.strokeColor
-        drawCircle(cursorCtx, x, y, (canvas.radius+ canvas.softness)/2, true, true)
+        if (canvas) {
+
+            
+            cursorCtx.fillStyle = canvas.strokeColor
+            drawCircle(cursorCtx, x, y, (canvas.radius + canvas.softness)/2, true, true)
+        } else {
+            cursorCtx.fillStyle = 'black'
+            drawCircle(cursorCtx, x, y, 2, true, true)
+        }
     }
     function onKeyUp(e: KeyboardEvent) {}
     onMount(async () => {

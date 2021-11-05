@@ -5,6 +5,10 @@
     import { drawLines } from "./drawUtils";
     // import { imageContour } from '../imageContour'
     import { loadImage } from "@/utils";
+// import { start } from "@/optimizeEvents";
+    import { imgTob64 } from "@/utils";
+    import {canvasSize }from '@/stores'
+import { lowerCase } from "lodash";
 
     export let id: string;
     export let width: number;
@@ -91,17 +95,35 @@
         // drawContext.set({ canvas, ctx })
         // Draw the start image that was saved
         
-        const last = window.localStorage.getItem(`${id}-canvasBase64`)
+        const savedUrl = window.localStorage.getItem(`${id}-canvasBase64`)
+        const startUrl = savedUrl || defaultImageUrl
+        if (startUrl != null && startUrl != 'null') {
+            const startImage = await loadImage(startUrl)
+            console.log(startImage.width, startImage.height, width, height);
+
+            if (startImage.width != width || startImage.height != height) {
+                canvasSize.set([startImage.width, startImage.height])
+                console.log('reset size');
+                
+            }
+            // width = startImage.width
+            // height = startImage.height
+            await tick()
+            
+            ctx.drawImage(startImage, 0, 0)
+            canvasBase64 = await imgTob64(startImage)
+        }
+        // c start i
         // console.log('last', typeof last, defaultImageUrl);
         
-        if (last != null && last != 'null') {
-            ctx.drawImage(await loadImage(last), 0, 0)
-            canvasBase64 = last
-            // drawContours(imageContour(canvas, ctx) as number[][][])
-        } else if (defaultImageUrl != null) {
-            ctx.drawImage(await loadImage(defaultImageUrl), 0, 0)
-            canvasBase64 = last
-        }
+        // if (last != null && last != 'null') {
+        //     ctx.drawImage(, 0, 0)
+        //     canvasBase64 = last
+        //     // drawContours(imageContour(canvas, ctx) as number[][][])
+        // } else if (defaultImageUrl != null) {
+        //     ctx.drawImage(await loadImage(defaultImageUrl), 0, 0)
+        //     canvasBase64 = last
+        // }
     });
 
     // function drawContours(contours: number[][][]) {

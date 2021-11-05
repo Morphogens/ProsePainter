@@ -21,6 +21,9 @@ export function start() {
         backgroundImg: get(mainCanvasBase64),
     }
     for (const [key, value] of Object.entries(data)) {
+        if (key == 'stylePrompt') {
+            continue
+        }
         if (!value || value.length == 0) {
             throw new Error(`Empty value for: ${key}.`)
         }
@@ -61,6 +64,9 @@ export function resume() {
         backgroundImg: imgTob64(get(lastOptimizationResult)),
     }
     for (const [key, value] of Object.entries(data)) {
+        if (key == 'stylePrompt') {
+            continue
+        }
         if (!value || value.length == 0) {
             throw new Error(`Empty value for: ${key}.`)
         }
