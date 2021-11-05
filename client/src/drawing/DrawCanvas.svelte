@@ -99,16 +99,16 @@ import { lowerCase } from "lodash";
         const startUrl = savedUrl || defaultImageUrl
         if (startUrl != null && startUrl != 'null') {
             const startImage = await loadImage(startUrl)
-            console.log(startImage.width, startImage.height, width, height);
+            // console.log(startImage.width, startImage.height, width, height);
 
-            if (startImage.width != width || startImage.height != height) {
-                canvasSize.set([startImage.width, startImage.height])
-                console.log('reset size');
+            // if (startImage.width != width || startImage.height != height) {
+            //     canvasSize.set([startImage.width, startImage.height])
+            //     console.log('reset size');
                 
-            }
+            // }
             // width = startImage.width
             // height = startImage.height
-            await tick()
+            // await tick()
             
             ctx.drawImage(startImage, 0, 0)
             canvasBase64 = await imgTob64(startImage)
