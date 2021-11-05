@@ -44,7 +44,7 @@
     }
 
     export function clear() {
-        ctx.clearRect(0, 0, 512, 512);
+        ctx.clearRect(0, 0, width, height);
         canvasChanged();
     }
 
