@@ -1,70 +1,100 @@
-<svelte:options accessors/>
+<svelte:options accessors />
+
 <script lang="ts">
-    import { onMount } from "svelte"
-    import { drawLines } from './drawUtils'
+    import { onMount, tick } from "svelte";
+    import { drawLines } from "./drawUtils";
     // import { imageContour } from '../imageContour'
     import { loadImage } from "@/utils";
-    
-    export let id: string
-    export let width: number
-    export let height: number
-    export let radius = 20
-    export let opacity = 3
-    export let softness = 3
-    export let erasing = false
-    export let canvasBase64 = ''
-    export let strokeColor = '#000000'
 
-    let canvas: HTMLCanvasElement
-    let ctx: CanvasRenderingContext2D
-    
-    let currentStrokeCanvas: HTMLCanvasElement
-    let currentStrokeCtx: CanvasRenderingContext2D
-    
+    export let id: string;
+    export let width: number;
+    export let height: number;
+    export let radius = 20;
+    export let opacity = 3;
+    export let softness = 3;
+    export let erasing = false;
+    export let canvasBase64: string | null = null;
+    export let strokeColor = "#000000";
+
+    let canvas: HTMLCanvasElement;
+    let ctx: CanvasRenderingContext2D;
+
+    let currentStrokeCanvas: HTMLCanvasElement;
+    let currentStrokeCtx: CanvasRenderingContext2D;
+
     // let outlinesCanvas: HTMLCanvasElement
     // let outlinesCtx: CanvasRenderingContext2D
+    let undoStack: string[] = [];
+    let undoStackMax = 30;
+    let redoStack: string[] = [];
+    let mouseDown = false;
+    let mouseover = false;
+    let currentStroke: number[][] = [];
 
-    let mouseDown = false
-    let mouseover = false
-    let currentStroke: number[][] = []
-
+    $: canvasBase64 = undoStack[undoStack.length - 1] ?? null
 
     function canvasChanged() {
-        const base64 = canvas.toDataURL()
-        // history.push(get(canvasBase64))
-        canvasBase64 = base64
         // window.localStorage.setItem('canvasBase64', base64)
+        // Cleaning the oldest undoable object
+        if (undoStack.length === undoStackMax) {
+            undoStack.shift()
+        }
+        redoStack = []
+        undoStack.push(canvas.toDataURL())
     }
 
     export function clear() {
-        ctx.clearRect(0, 0, 512, 512)
-        canvasChanged()
-    }
-    
-    export function set(src:CanvasImageSource) {
-        ctx.drawImage(src, 0, 0)
-        canvasChanged()
+        ctx.clearRect(0, 0, 512, 512);
+        canvasChanged();
     }
 
-    export function getCanvas():HTMLCanvasElement {
-        return canvas
+    export function set(src: CanvasImageSource) {
+        ctx.drawImage(src, 0, 0);
+        canvasChanged();
     }
 
+    export function getCanvas(): HTMLCanvasElement {
+        return canvas;
+    }
+
+    async function setFromUndoRedo() {
+        ctx.clearRect(0, 0, width, height);
+        if (undoStack.length) {
+            const image = await loadImage(undoStack[undoStack.length-1]);
+            ctx.drawImage(image, 0, 0);
+        }
+    }
+
+    export async function undo() {
+        const lastbase64 = undoStack.pop()
+        await setFromUndoRedo()
+        if (lastbase64) {            
+            redoStack.push(lastbase64)
+        }
+    }
+    export async function redo() {
+        const lastbase64 = redoStack.pop()
+        if (lastbase64) {
+            undoStack.push(lastbase64);
+        }
+        await setFromUndoRedo()
+        
+    }
     onMount(async () => {
-        ctx = canvas.getContext('2d')
+        ctx = canvas.getContext("2d");
         // outlinesCtx = outlinesCanvas.getContext('2d')
-        currentStrokeCtx = currentStrokeCanvas.getContext('2d')
+        currentStrokeCtx = currentStrokeCanvas.getContext("2d");
         // drawContext.set({ canvas, ctx })
         // Draw the start image that was saved
-        const last = null//window.localStorage.getItem('canvasBase64')
-        if (last) {
-            ctx.drawImage(await loadImage(last), 0, 0)
-            // canvasBase64.set(last)
-            canvasBase64 = last
-            // drawContours(imageContour(canvas, ctx) as number[][][])
-        }
-    })
-    
+        // const last = null//window.localStorage.getItem('canvasBase64')
+        // if (last) {
+        //     ctx.drawImage(await loadImage(last), 0, 0)
+        //     // canvasBase64.set(last)
+        //     canvasBase64 = last
+        //     // drawContours(imageContour(canvas, ctx) as number[][][])
+        // }
+    });
+
     // function drawContours(contours: number[][][]) {
     //     outlinesCtx.clearRect(0, 0, width, height)
     //     outlinesCtx.lineWidth = 1
@@ -79,61 +109,58 @@
     // }
 
     function strokeDone() {
-        if (!mouseDown){
-            return
+        if (!mouseDown) {
+            return;
         }
-        mouseDown = false
-        currentStroke = []
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.drawImage(currentStrokeCanvas, 0, 0)
-        currentStrokeCtx.clearRect(0, 0, width, height)
-        canvasChanged()
+        mouseDown = false;
+        currentStroke = [];
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(currentStrokeCanvas, 0, 0);
+        currentStrokeCtx.clearRect(0, 0, width, height);
+        canvasChanged();
     }
 
     function onMouseMove(event) {
         const [x, y] = [event.offsetX, event.offsetY];
         if (mouseDown) {
-            currentStroke.push([x, y])
+            currentStroke.push([x, y]);
             if (erasing) {
-                ctx.filter = 'none';
-                ctx.globalCompositeOperation = 'destination-out'
-                ctx.strokeStyle = 'rgba(255,255,255,1)'
-                ctx.lineWidth = radius
-                ctx.lineCap = 'round'
-                ctx.lineJoin = 'round'
-                drawLines(ctx, currentStroke)
+                ctx.filter = "none";
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.strokeStyle = "rgba(255,255,255,1)";
+                ctx.lineWidth = radius;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                drawLines(ctx, currentStroke);
             } else {
-                ctx.globalCompositeOperation = 'destination-over'
+                ctx.globalCompositeOperation = "destination-over";
                 currentStrokeCtx.globalAlpha = 1 - opacity;
                 currentStrokeCtx.filter = `blur(${softness}px)`;
-                currentStrokeCtx.strokeStyle = strokeColor
-                currentStrokeCtx.lineWidth = radius
-                currentStrokeCtx.lineCap = 'round'
-                currentStrokeCtx.lineJoin = 'round'
-                currentStrokeCtx.clearRect(0, 0, width, height)
-                drawLines(currentStrokeCtx, currentStroke)
-            }            
+                currentStrokeCtx.strokeStyle = strokeColor;
+                currentStrokeCtx.lineWidth = radius;
+                currentStrokeCtx.lineCap = "round";
+                currentStrokeCtx.lineJoin = "round";
+                currentStrokeCtx.clearRect(0, 0, width, height);
+                drawLines(currentStrokeCtx, currentStroke);
+            }
         }
     }
-
 </script>
-<div id={id} class='canvasesContainer'
+
+<div
+    {id}
+    class="canvasesContainer"
     on:mousedown={() => (mouseDown = true)}
     on:mouseup={() => strokeDone()}
     on:mouseleave={() => strokeDone()}
     on:mousemove={onMouseMove}
-    on:mouseover={() => mouseover=true}
-    on:mouseout={() => mouseover=false}
-    on:focus={() => mouseover=true}
-    on:blur={() => mouseover=false}
+    on:mouseover={() => (mouseover = true)}
+    on:mouseout={() => (mouseover = false)}
+    on:focus={() => (mouseover = true)}
+    on:blur={() => (mouseover = false)}
 >
-    <canvas
-        id='drawCanvas'
-        bind:this={canvas}
-        {width}
-        {height}
-    />
-        <!-- style='opacity:{mouseover ? 1 : 0}' -->
+    <canvas id="drawCanvas" bind:this={canvas} {width} {height} />
+    <!-- style='opacity:{mouseover ? 1 : 0}' -->
     <!-- <canvas
         id='outlinesCanvas'
         bind:this={outlinesCanvas}
@@ -149,13 +176,12 @@
     />
 </div>
 
-
 <style>
     .canvasesContainer {
         position: relative;
         cursor: crosshair;
     }
-    #currentStrokeCanvas  {
+    #currentStrokeCanvas {
         position: absolute;
         top: 0px;
         left: 0px;

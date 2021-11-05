@@ -1,8 +1,9 @@
 <script lang="ts">
+    import { onMount } from "svelte";
+    import { get } from "svelte/store";
     import InfiniteViewer from "@/drawing/svelte-infinite-viewer";
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import OptionPanel from "@/components/OptionPanel.svelte";
-    import { onMount } from "svelte";
     import { mode } from "./stores";
     import startBackgroundUrl from "./assets/startImage0.jpeg";
     import downloadUrl from "./assets/download.svg";
@@ -17,14 +18,24 @@
         canvasSize,
     } from "./stores";
 
+
     function onKeyDown(e: KeyboardEvent) {
-        // if (e.code === "KeyZ" && (e.metaKey === true || e.ctrlKey === true)) {
-        //     if (e.shiftKey) {
-        //         undo.redo();
-        //     } else {
-        //         undo.undo();
-        //     }
-        // }
+        const $mode = get(mode)
+        if (e.code === "KeyZ" && (e.metaKey === true || e.ctrlKey === true)) {
+            if (e.shiftKey) {
+                if ($mode == Mode.DirectDraw) {
+                    get(mainCanvas).redo()
+                } else if ($mode == Mode.MaskDraw) {
+                    get(maskCanvas).redo()
+                }
+            } else {
+                if ($mode == Mode.DirectDraw) {
+                    get(mainCanvas).undo()
+                } else if ($mode == Mode.MaskDraw) {
+                    get(maskCanvas).undo()
+                }
+            }
+        }
     }
 
     function onKeyUp(e: KeyboardEvent) {}
@@ -111,7 +122,7 @@
         width: 256px;
         height: 256px;
     } */
-    
+
     .hidden {
         display: none;
     }
@@ -161,7 +172,14 @@
         display: none;
     }
     #downloadButton {
-        position:fixed;right:10px;bottom:10px;z-index:1;background:white;border-radius:50%;width:50px;height:50px;padding:0px;
+        position: fixed;
+        right: 10px;
+        bottom: 10px;
+        z-index: 1;
+        background: white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        padding: 0px;
     }
-
 </style>
