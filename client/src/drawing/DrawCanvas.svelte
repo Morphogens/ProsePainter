@@ -32,7 +32,7 @@
     let currentStroke: number[][] = [];
 
     $: canvasBase64 = undoStack[undoStack.length - 1] ?? null
-
+    
     function canvasChanged() {
         // window.localStorage.setItem('canvasBase64', base64)
         // Cleaning the oldest undoable object
@@ -40,7 +40,7 @@
             undoStack.shift()
         }
         redoStack = []
-        undoStack.push(canvas.toDataURL())
+        undoStack = [...undoStack, canvas.toDataURL()]
     }
 
     export function clear() {
@@ -49,8 +49,10 @@
     }
 
     export function set(src: CanvasImageSource) {
+        console.log('set image');
         ctx.drawImage(src, 0, 0);
         canvasChanged();
+        
     }
 
     export function getCanvas(): HTMLCanvasElement {
