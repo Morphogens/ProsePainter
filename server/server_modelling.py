@@ -94,7 +94,7 @@ class MaskOptimizer:
         cond_img: np.ndarray,
         mask: np.ndarray,
         lr: float,
-        rec_lr: float = 0.1,
+        rec_lr: float = 0.5,
         style_prompt: str = "",
         **kwargs,
     ) -> None:
@@ -119,6 +119,8 @@ class MaskOptimizer:
         text_latents = text_latents.to(DEVICE)
         self.text_latents = text_latents
         
+        logger.debug(f"STYLE PROMPT {style_prompt}")
+
         self.style_latents = None
         if style_prompt != "":
             style_latents = self.model.get_clip_text_encodings(prompt, )
@@ -150,7 +152,7 @@ class MaskOptimizer:
 
     def optimize_reconstruction(
         self,
-        num_iters: int = 32,
+        num_iters: int = 16,
     ):
         for iter_idx in range(num_iters):
             gen_img = self.model.get_img_from_latents(self.gen_latents, )
