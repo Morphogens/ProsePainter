@@ -188,7 +188,8 @@
 <style>
     .canvasesContainer {
         position: relative;
-        cursor: crosshair;
+        cursor: none;
+        /* cursor: crosshair; */
     }
     #currentStrokeCanvas {
         position: absolute;

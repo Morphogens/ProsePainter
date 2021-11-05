@@ -17,33 +17,45 @@
         maskCanvas,
         canvasSize,
     } from "./stores";
+    import { drawCircle } from "./drawing/drawUtils";
+    
+    let cursorCanvas:HTMLCanvasElement
+    let cursorCtx:CanvasRenderingContext2D
 
+    function activeDrawCanvas():DrawCanvas {
+        if ($mode == Mode.DirectDraw) {
+            return get(mainCanvas)
+        } else if ($mode == Mode.MaskDraw) {
+            return get(maskCanvas)
+        }
+    }
 
     function onKeyDown(e: KeyboardEvent) {
-        const $mode = get(mode)
+        const $mode = get(mode);
         if (e.code === "KeyZ" && (e.metaKey === true || e.ctrlKey === true)) {
+            const activeCanvas = activeDrawCanvas()
             if (e.shiftKey) {
-                if ($mode == Mode.DirectDraw) {
-                    get(mainCanvas).redo()
-                } else if ($mode == Mode.MaskDraw) {
-                    get(maskCanvas).redo()
-                }
+                activeCanvas.redo()
             } else {
-                if ($mode == Mode.DirectDraw) {
-                    get(mainCanvas).undo()
-                } else if ($mode == Mode.MaskDraw) {
-                    get(maskCanvas).undo()
-                }
+                activeCanvas.undo()
             }
         }
     }
 
+    function onMouseMove(event) {
+        const [x, y] = [event.offsetX, event.offsetY];
+        cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1])
+        const canvas = activeDrawCanvas()
+        cursorCtx.lineWidth = 1
+        cursorCtx.strokeStyle = 'white'
+        cursorCtx.fillStyle = canvas.strokeColor
+        drawCircle(cursorCtx, x, y, (canvas.radius+ canvas.softness)/2, true, true)
+    }
     function onKeyUp(e: KeyboardEvent) {}
     onMount(async () => {
-        // $mainCanvas.set(await loadImage(startBackgroundUrl));
         $mainCanvas.strokeColor = "#e66465";
+        cursorCtx = cursorCanvas.getContext('2d')
     });
-    // log
 </script>
 
 <svelte:window on:keydown={onKeyDown} on:keyup={onKeyUp} />
@@ -75,11 +87,13 @@
     usePinch={true}
     rangeX={[-256, 256]}
     rangeY={[-256, 256]}
+    
 >
     <div class="viewport" style="width:{$canvasSize[0]}px">
         <div
             id="content"
             style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px"
+            on:mousemove={onMouseMove}
         >
             <DrawCanvas
                 width={$canvasSize[0]}
@@ -102,6 +116,13 @@
             {#if $lastOptimizationResult}
                 <img id="optPreview" src={$lastOptimizationResult.src} />
             {/if}
+            <canvas
+                id="cursorCanvas"
+                width={$canvasSize[0]}
+                height={$canvasSize[1]}
+                bind:this={cursorCanvas}
+            />
+                <!-- style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px;pointer-events:none;" -->
         </div>
     </div>
     <!-- {#if maskCanvasBase64}
@@ -110,10 +131,14 @@
 </InfiniteViewer>
 
 <style>
-    :global(#maskCanvas, #optPreview) {
+    :global(#maskCanvas, #optPreview, #cursorCanvas) {
         top: 0px;
         left: 0px;
         position: absolute;
+    }
+    #cursorCanvas {
+        cursor: none;
+        pointer-events: none;
     }
     /* #debugMask  {
         position: fixed;
