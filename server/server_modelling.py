@@ -75,6 +75,7 @@ class MaskOptimizer:
         cond_img: np.ndarray,
         mask: np.ndarray,
         lr: float,
+        rec_lr: float = 0.1,
         **kwargs,
     ) -> None:
         """
@@ -110,6 +111,30 @@ class MaskOptimizer:
             betas=(0.9, 0.999),
             weight_decay=0.1,
         )
+        
+        self.rec_optimizer = torch.optim.AdamW(
+            params=[self.gen_latents],
+            lr=rec_lr,
+            betas=(0.9, 0.999),
+            weight_decay=0.1,
+        )
+
+        return
+
+    def optimize_reconstruction(
+        self,
+        num_iters: int = 32,
+    ):
+        for iter_idx in range(num_iters):
+            gen_img = self.model.get_img_from_latents(self.gen_latents, )
+            gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
+            
+            loss = 10 * torch.nn.functional.mse_loss(gen_img, self.cond_img,)
+            logger.debug(f"MSE LOSS {loss}")
+        
+            self.rec_optimizer.zero_grad()
+            loss.backward(retain_graph=False, )
+            self.rec_optimizer.step()
 
         return
 
