@@ -166,7 +166,7 @@ class UserSession:
         )
         mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        if self_mask_optimizer is None:
+        if self.mask_optimizer is None:
             self.mask_optimizer = MaskOptimizer(
                 prompt=prompt,
                 cond_img=img_crop_tensor,
@@ -174,7 +174,7 @@ class UserSession:
                 lr=lr,
             )
         
-        mask_optimizer.optimize_reconstruction()
+        self.mask_optimizer.optimize_reconstruction()
 
 
         gen_img = None
@@ -183,7 +183,7 @@ class UserSession:
             if self.stop_generation:
                 break
 
-            gen_img = mask_optimizer.optimize()
+            gen_img = self.mask_optimizer.optimize()
 
             
 
