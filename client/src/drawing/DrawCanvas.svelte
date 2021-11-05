@@ -15,6 +15,7 @@
     export let erasing = false;
     export let canvasBase64: string | null = null;
     export let strokeColor = "#000000";
+    export let defaultImageUrl: string | null = null
 
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -34,13 +35,14 @@
     $: canvasBase64 = undoStack[undoStack.length - 1] ?? null
     
     function canvasChanged() {
-        // window.localStorage.setItem('canvasBase64', base64)
         // Cleaning the oldest undoable object
         if (undoStack.length === undoStackMax) {
             undoStack.shift()
         }
         redoStack = []
-        undoStack = [...undoStack, canvas.toDataURL()]
+        const dataURl = canvas.toDataURL()
+        undoStack = [...undoStack, dataURl]
+        window.localStorage.setItem(`${id}-canvasBase64`, dataURl)
     }
 
     export function clear() {
@@ -88,13 +90,18 @@
         currentStrokeCtx = currentStrokeCanvas.getContext("2d");
         // drawContext.set({ canvas, ctx })
         // Draw the start image that was saved
-        // const last = null//window.localStorage.getItem('canvasBase64')
-        // if (last) {
-        //     ctx.drawImage(await loadImage(last), 0, 0)
-        //     // canvasBase64.set(last)
-        //     canvasBase64 = last
-        //     // drawContours(imageContour(canvas, ctx) as number[][][])
-        // }
+        
+        const last = window.localStorage.getItem(`${id}-canvasBase64`)
+        // console.log('last', typeof last, defaultImageUrl);
+        
+        if (last != null && last != 'null') {
+            ctx.drawImage(await loadImage(last), 0, 0)
+            canvasBase64 = last
+            // drawContours(imageContour(canvas, ctx) as number[][][])
+        } else if (defaultImageUrl != null) {
+            ctx.drawImage(await loadImage(defaultImageUrl), 0, 0)
+            canvasBase64 = last
+        }
     });
 
     // function drawContours(contours: number[][][]) {

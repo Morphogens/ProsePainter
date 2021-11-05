@@ -40,7 +40,7 @@
 
     function onKeyUp(e: KeyboardEvent) {}
     onMount(async () => {
-        $mainCanvas.set(await loadImage(startBackgroundUrl));
+        // $mainCanvas.set(await loadImage(startBackgroundUrl));
         $mainCanvas.strokeColor = "#e66465";
     });
     // log
@@ -86,6 +86,7 @@
                 height={$canvasSize[1]}
                 radius={4}
                 id="mainCanvas"
+                defaultImageUrl={startBackgroundUrl}
                 bind:canvasBase64={$mainCanvasBase64}
                 bind:this={$mainCanvas}
             />
