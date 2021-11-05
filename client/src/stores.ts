@@ -2,7 +2,7 @@ import { Mode } from './types'
 import { writable } from 'svelte/store'
 import type DrawCanvas from './components/DrawCanvas'
 export const prompt = writable('a dog')
-export const stylePrompt = writable('a painting')
+export const stylePrompt = writable('')
 export const lastOptimizationResult = writable(null as null | HTMLImageElement)
 export const learningRate = writable(250)
 export const mode = writable(Mode.MaskDraw as Mode)

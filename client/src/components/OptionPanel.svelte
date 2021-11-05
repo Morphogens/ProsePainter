@@ -24,9 +24,9 @@
 <div id="optionPanel">
     {#if $mode == Mode.MaskDraw && maskCanvas}
         <p>What would you like to draw?</p>
-        <input type="text" id="lname" name="lname" bind:value={$prompt} />
+        <input type="text" minlength="3" bind:value={$prompt} />
         <p>In what style?</p>
-        <input type="text" id="lname" name="lname" bind:value={$stylePrompt} />
+        <input type="text" placeholder="Default" bind:value={$stylePrompt} />
         <br>
         <button
             on:click={() => (maskCanvas.erasing = false)}
