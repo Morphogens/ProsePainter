@@ -94,7 +94,7 @@ class MaskOptimizer:
         cond_img: np.ndarray,
         mask: np.ndarray,
         lr: float,
-        rec_lr: float = 0.5,
+        rec_lr: float = 0.25,
         style_prompt: str = "",
         **kwargs,
     ) -> None:
@@ -156,7 +156,7 @@ class MaskOptimizer:
     ):
         for iter_idx in range(num_iters):
             gen_img = self.model.get_img_from_latents(self.gen_latents, )
-            gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
+            # gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
             
             loss = 10 * torch.nn.functional.mse_loss(gen_img, self.cond_img,)
             logger.debug(f"MSE LOSS {loss}")
