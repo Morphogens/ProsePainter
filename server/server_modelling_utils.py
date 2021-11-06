@@ -104,9 +104,9 @@ def scale_crop_tensor(crop_tensor: torch.Tensor, ) -> torch.Tensor:
     """
     crop_size = crop_tensor.shape[2::]
 
-    if any([size > MAX_IMG_DIM for size in crop_size]):
-        scale_factor = max(crop_size) / MAX_IMG_DIM
-        scale_factor = scale_factor
+    # if any([size > MAX_IMG_DIM for size in crop_size]):
+    scale_factor = max(crop_size) / MAX_IMG_DIM
+    scale_factor = scale_factor
 
     crop_size = tuple(np.asarray(crop_size) / scale_factor)
 
