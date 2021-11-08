@@ -94,7 +94,7 @@ class MaskOptimizer:
         cond_img: np.ndarray,
         mask: np.ndarray,
         lr: float,
-        rec_lr: float = 0.25,
+        rec_lr: float = 0.1,
         style_prompt: str = "",
         **kwargs,
     ) -> None:
@@ -128,7 +128,7 @@ class MaskOptimizer:
             style_latents = style_latents.to(DEVICE)
             self.style_latents = style_latents
 
-        self.gen_latents = self.model.get_latents_from_img(cond_img, )
+        self.gen_latents = self.model.get_latents_from_img(cond_img * 2 - 1, )
         self.gen_latents = self.gen_latents.to(DEVICE)
         self.gen_latents = self.gen_latents.detach().clone()
         self.gen_latents.requires_grad = True
@@ -154,11 +154,16 @@ class MaskOptimizer:
         self,
         num_iters: int = 16,
     ):
-        for iter_idx in range(num_iters):
+        rec_mask = self.mask
+        rec_mask[rec_mask>0] = 1
+
+        rec_loss_weight = self.cond_img.shape[2]*self.cond_img.shape[3]
+
+        for _iter_idx in range(num_iters):
             gen_img = self.model.get_img_from_latents(self.gen_latents, )
-            # gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
+            gen_img = (rec_mask * gen_img) + (1 - rec_mask) * self.cond_img
             
-            loss = 10 * torch.nn.functional.mse_loss(gen_img, self.cond_img,)
+            loss = rec_loss_weight * torch.nn.functional.mse_loss(gen_img, self.cond_img,)
             logger.debug(f"MSE LOSS {loss}")
         
             self.rec_optimizer.zero_grad()
