@@ -14,7 +14,7 @@
         if (files.length) {
             const url = URL.createObjectURL(files[0]);
             const image = await loadImage(url);
-            canvasSize.set([image.width, image.height])
+            canvasSize.set([ image.width, image.height ])
             await tick() // DrawCanvases get recreated.
             mainCanvas.set(image)
         }

@@ -10,58 +10,60 @@
     import { downloadCanvas, loadImage } from "./utils";
     import { Mode } from "./types";
     import {
-        maskCanvasBase64,
-        mainCanvasBase64,
         lastOptimizationResult,
         mainCanvas,
         maskCanvas,
         canvasSize,
     } from "./stores";
     import { drawCircle } from "./drawing/drawUtils";
-    
-    let cursorCanvas:HTMLCanvasElement
-    let cursorCtx:CanvasRenderingContext2D
 
-    function activeDrawCanvas():DrawCanvas {
+    let cursorCanvas: HTMLCanvasElement;
+    let cursorCtx: CanvasRenderingContext2D;
+
+    function activeDrawCanvas(): DrawCanvas {
         if ($mode == Mode.DirectDraw) {
-            return get(mainCanvas)
+            return get(mainCanvas);
         } else if ($mode == Mode.MaskDraw) {
-            return get(maskCanvas)
+            return get(maskCanvas);
         }
     }
 
     function onKeyDown(e: KeyboardEvent) {
-        const $mode = get(mode);
         if (e.code === "KeyZ" && (e.metaKey === true || e.ctrlKey === true)) {
-            const activeCanvas = activeDrawCanvas()
+            const activeCanvas = activeDrawCanvas();
             if (e.shiftKey) {
-                activeCanvas.redo()
+                activeCanvas.redo();
             } else {
-                activeCanvas.undo()
+                activeCanvas.undo();
             }
         }
     }
 
     function onMouseMove(event) {
         const [x, y] = [event.offsetX, event.offsetY];
-        cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1])
-        const canvas = activeDrawCanvas()
-        cursorCtx.lineWidth = 1
-        cursorCtx.strokeStyle = 'white'
+        cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
+        const canvas = activeDrawCanvas();
+        cursorCtx.lineWidth = 1;
+        cursorCtx.strokeStyle = "white";
         if (canvas) {
-
-            
-            cursorCtx.fillStyle = canvas.strokeColor
-            drawCircle(cursorCtx, x, y, (canvas.radius + canvas.softness)/2, true, true)
+            cursorCtx.fillStyle = canvas.strokeColor;
+            drawCircle(
+                cursorCtx,
+                x,
+                y,
+                (canvas.radius + canvas.softness) / 2,
+                true,
+                true
+            );
         } else {
-            cursorCtx.fillStyle = 'black'
-            drawCircle(cursorCtx, x, y, 2, true, true)
+            cursorCtx.fillStyle = "black";
+            drawCircle(cursorCtx, x, y, 2, true, true);
         }
     }
     function onKeyUp(e: KeyboardEvent) {}
     onMount(async () => {
         $mainCanvas.strokeColor = "#e66465";
-        cursorCtx = cursorCanvas.getContext('2d')
+        cursorCtx = cursorCanvas.getContext("2d");
     });
 </script>
 
@@ -94,7 +96,6 @@
     usePinch={true}
     rangeX={[-256, 256]}
     rangeY={[-256, 256]}
-    
 >
     <div class="viewport" style="width:{$canvasSize[0]}px">
         <div
@@ -108,7 +109,6 @@
                 radius={4}
                 id="mainCanvas"
                 defaultImageUrl={startBackgroundUrl}
-                bind:canvasBase64={$mainCanvasBase64}
                 bind:this={$mainCanvas}
             />
             <div class:hidden={$mode == Mode.DirectDraw} style="opacity:0.5;">
@@ -116,7 +116,6 @@
                     width={$canvasSize[0]}
                     height={$canvasSize[1]}
                     id="maskCanvas"
-                    bind:canvasBase64={$maskCanvasBase64}
                     bind:this={$maskCanvas}
                 />
             </div>
@@ -129,7 +128,7 @@
                 height={$canvasSize[1]}
                 bind:this={cursorCanvas}
             />
-                <!-- style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px;pointer-events:none;" -->
+            <!-- style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px;pointer-events:none;" -->
         </div>
     </div>
     <!-- {#if maskCanvasBase64}

@@ -1,25 +1,28 @@
 <svelte:options accessors />
 
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { onMount, tick, createEventDispatcher } from "svelte";
+    const dispatch = createEventDispatcher()
     import { drawLines } from "./drawUtils";
     // import { imageContour } from '../imageContour'
     import { loadImage } from "@/utils";
-// import { start } from "@/optimizeEvents";
+    // import { start } from "@/optimizeEvents";
     import { imgTob64 } from "@/utils";
-    import {canvasSize }from '@/stores'
-import { lowerCase } from "lodash";
+    import { canvasSize }from '@/stores'
 
     export let id: string;
-    export let width: number;
-    export let height: number;
     export let radius = 20;
     export let opacity = 3;
     export let softness = 3;
     export let erasing = false;
     export let canvasBase64: string | null = null;
     export let strokeColor = "#000000";
+    
+    
+    export let width: number;
+    export let height: number;
     export let defaultImageUrl: string | null = null
+    // export let 
 
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -46,6 +49,7 @@ import { lowerCase } from "lodash";
         redoStack = []
         const dataURl = canvas.toDataURL()
         undoStack = [...undoStack, dataURl]
+        // dispatch('canvasChanged', { ctx, canvas, canvasBase64 });
         window.localStorage.setItem(`${id}-canvasBase64`, dataURl)
     }
 
@@ -54,11 +58,12 @@ import { lowerCase } from "lodash";
         canvasChanged();
     }
 
-    export function set(src: CanvasImageSource) {
-        console.log('set image');
-        ctx.drawImage(src, 0, 0);
-        canvasChanged();
-        
+    export function set(src: HTMLCanvasElement | HTMLImageElement) {
+        canvas.width = src.width
+        canvas.height = src.height
+        console.log('set image')
+        ctx.drawImage(src, 0, 0)
+        canvasChanged()
     }
 
     export function getCanvas(): HTMLCanvasElement {
@@ -90,41 +95,22 @@ import { lowerCase } from "lodash";
     }
     onMount(async () => {
         ctx = canvas.getContext("2d");
-        // outlinesCtx = outlinesCanvas.getContext('2d')
-        currentStrokeCtx = currentStrokeCanvas.getContext("2d");
-        // drawContext.set({ canvas, ctx })
         // Draw the start image that was saved
-        
+        currentStrokeCtx = currentStrokeCanvas.getContext("2d");
+        // outlinesCtx = outlinesCanvas.getContext('2d')  
         const savedUrl = window.localStorage.getItem(`${id}-canvasBase64`)
         const startUrl = savedUrl || defaultImageUrl
+        console.log('startUrl', startUrl.length);
+         
         if (startUrl != null && startUrl != 'null') {
             const startImage = await loadImage(startUrl)
-            // console.log(startImage.width, startImage.height, width, height);
-
-            // if (startImage.width != width || startImage.height != height) {
-            //     canvasSize.set([startImage.width, startImage.height])
-            //     console.log('reset size');
-                
-            // }
-            // width = startImage.width
-            // height = startImage.height
-            // await tick()
-            
             ctx.drawImage(startImage, 0, 0)
-            canvasBase64 = await imgTob64(startImage)
+            console.log(undoStack.length);
+            
+            // canvasChanged()
+            // canvasBase64 = await imgTob64(startImage)
         }
-        // c start i
-        // console.log('last', typeof last, defaultImageUrl);
-        
-        // if (last != null && last != 'null') {
-        //     ctx.drawImage(, 0, 0)
-        //     canvasBase64 = last
-        //     // drawContours(imageContour(canvas, ctx) as number[][][])
-        // } else if (defaultImageUrl != null) {
-        //     ctx.drawImage(await loadImage(defaultImageUrl), 0, 0)
-        //     canvasBase64 = last
-        // }
-    });
+    })
 
     // function drawContours(contours: number[][][]) {
     //     outlinesCtx.clearRect(0, 0, width, height)

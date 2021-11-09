@@ -1,7 +1,7 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
 import { socket, messageServer } from "@/lib/socket";
-import { prompt, mode, learningRate, maskCanvasBase64, mainCanvasBase64, lastOptimizationResult, mainCanvas, stylePrompt } from './stores'
+import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt } from './stores'
 import { imgTob64 } from './utils';
 
 interface StartGenerationData {
@@ -17,8 +17,8 @@ export function start() {
         prompt: get(prompt),
         stylePrompt: get(stylePrompt)??'',
         learningRate: get(learningRate) / 1000,
-        imageBase64: get(maskCanvasBase64),
-        backgroundImg: get(mainCanvasBase64),
+        imageBase64: get(maskCanvas).canvasBase64,
+        backgroundImg: get(mainCanvas).canvasBase64,
     }
     for (const [key, value] of Object.entries(data)) {
         if (key == 'stylePrompt') {
