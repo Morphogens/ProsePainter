@@ -15,10 +15,15 @@
         maskCanvas,
         canvasSize,
     } from "./stores";
-    import { drawCircle } from "./drawing/drawUtils";
+    import { drawCircle, drawLines } from "./drawing/drawUtils";
+    import { imageContour } from "./imageContour";
 
+    let mouseover = false;
     let cursorCanvas: HTMLCanvasElement;
     let cursorCtx: CanvasRenderingContext2D;
+
+    let outlineCanvas: HTMLCanvasElement;
+    let outlineCtx: CanvasRenderingContext2D;
 
     function activeDrawCanvas(): DrawCanvas {
         if ($mode == Mode.DirectDraw) {
@@ -37,6 +42,10 @@
                 activeCanvas.undo();
             }
         }
+    }
+
+    $: if (!mouseover && cursorCtx) {
+        cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
     }
 
     function onMouseMove(event) {
@@ -60,14 +69,29 @@
             drawCircle(cursorCtx, x, y, 2, true, true);
         }
     }
-    function onKeyUp(e: KeyboardEvent) {}
+
+    function drawContours(contours: number[][][]) {
+        outlineCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
+        outlineCtx.lineWidth = 1;
+        outlineCtx.setLineDash([3, 3]);
+        for (const poly of contours) {
+            drawLines(outlineCtx, poly);
+        }
+    }
+
+    function onMaskCanvasChange(data) {
+        const { canvas, ctx } = data.detail;
+        drawContours(imageContour(canvas, ctx) as number[][][]);
+    }
+
     onMount(async () => {
         $mainCanvas.strokeColor = "#e66465";
         cursorCtx = cursorCanvas.getContext("2d");
+        outlineCtx = outlineCanvas.getContext("2d");
     });
 </script>
 
-<svelte:window on:keydown={onKeyDown} on:keyup={onKeyUp} />
+<svelte:window on:keydown={onKeyDown} />
 
 <div id="modeToggle">
     <button
@@ -102,6 +126,10 @@
             id="content"
             style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px"
             on:mousemove={onMouseMove}
+            on:mouseover={() => (mouseover = true)}
+            on:mouseout={() => (mouseover = false)}
+            on:focus={() => (mouseover = true)}
+            on:blur={() => (mouseover = false)}
         >
             <DrawCanvas
                 width={$canvasSize[0]}
@@ -111,14 +139,24 @@
                 defaultImageUrl={startBackgroundUrl}
                 bind:this={$mainCanvas}
             />
-            <div class:hidden={$mode == Mode.DirectDraw} style="opacity:0.5;">
+            <div
+                class:hidden={$mode == Mode.DirectDraw || !mouseover}
+                style="opacity:0.5;"
+            >
                 <DrawCanvas
                     width={$canvasSize[0]}
                     height={$canvasSize[1]}
                     id="maskCanvas"
+                    on:change={onMaskCanvasChange}
                     bind:this={$maskCanvas}
                 />
             </div>
+            <canvas
+                id="outlineCanvas"
+                width={$canvasSize[0]}
+                height={$canvasSize[1]}
+                bind:this={outlineCanvas}
+            />
             {#if $lastOptimizationResult}
                 <img id="optPreview" src={$lastOptimizationResult.src} />
             {/if}
@@ -137,12 +175,13 @@
 </InfiniteViewer>
 
 <style>
-    :global(#maskCanvas, #optPreview, #cursorCanvas) {
+    :global(#maskCanvas, #optPreview, #cursorCanvas, #outlineCanvas) {
         top: 0px;
         left: 0px;
         position: absolute;
     }
-    #cursorCanvas {
+    #cursorCanvas,
+    #outlineCanvas {
         cursor: none;
         pointer-events: none;
     }
