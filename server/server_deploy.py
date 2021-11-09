@@ -231,7 +231,7 @@ class UserSession:
         self,
         canvas_img: str,
         mask: str,
-        padding_percent: 0,
+        padding_percent:int = 0,
         **kwargs,
     ):
         esrgan = ESRGAN()
@@ -268,8 +268,24 @@ class UserSession:
         )
         mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        num_chunks = np.ceil((img_height * img_width) / 256**2)
-        esrgan.upscale_img(img_crop_tensor*mask_crop_tensor, num_chunks,)
+        num_chunks = int(np.ceil((img_height * img_width) / 256**2))
+        upscaled_crop = esrgan.upscale_img(img_crop_tensor*mask_crop_tensor, num_chunks,)
+        
+        updated_canvas = merge_gen_img_into_canvas(
+            upscaled_crop,
+            mask_crop_tensor,
+            canvas_img,
+            crop_limits,
+        )
+            
+        updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas *
+                                                        255))
+        updated_canvas_uri = pil_to_base64(updated_canvas_pil)
+
+        self.async_manager.set_async_value({
+            "user_id": self.user_id,
+            "image": updated_canvas_uri,
+        })
 
 
     async def listen_loop(self, ):
@@ -287,6 +303,19 @@ class UserSession:
 
                 if topic == "initialize":
                     self.initialize = True
+
+                if topic=="upscale-generation":
+                    print(data_dict)
+                    optimize_kwargs = {
+                        "canvas_img": data_dict["backgroundImg"],
+                        "mask": data_dict["imageBase64"],
+                    }
+
+                    upscale_thread = threading.Thread(
+                        target=self.upscale_canvas,
+                        kwargs=optimize_kwargs,
+                    )
+                    upscale_thread.start()
 
                 elif topic == "start-generation" or topic == "resume-generation":
                     if topic != "resume-generation":

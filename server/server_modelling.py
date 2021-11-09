@@ -8,7 +8,8 @@ import numpy as np
 from bigotis.models import TamingDecoder, Aphantasia
 from loguru import logger
 
-from server.server_config import MODEL_NAME, DEBUG, DEBUG_OUT_DIR
+from server.server_config import MODEL_NAME, DEBUG, DEBUG_OUT_DIR, ESRGAN_MODEL_PATH
+from server.server_modelling_utils import download_file_from_google_drive
 
 torch.manual_seed(123)
 
@@ -62,6 +63,7 @@ class ModelFactory:
         if model_name == "esrgan":
             if self.esrgan is None:
                 if not os.path.exists(ESRGAN_MODEL_PATH):
+                    os.makedirs(os.path.dirname(ESRGAN_MODEL_PATH), exist_ok=True,)
                     download_file_from_google_drive(
                         '1TPrz5QKd8DHHt1k8SRtm6tMiPjz_Qene',
                         ESRGAN_MODEL_PATH,
@@ -327,42 +329,47 @@ class RRDBNet(torch.nn.Module):
 class ESRGAN:
     def __init__(
         self, 
-        model_path: str,
     ) -> None:
         self.model = model_factory.load_model("esrgan")
 
         self.scale = 4
 
-    def upscale_img(self, img: np.ndarray, num_chunks:int=1,) -> np.ndarray:
-        img_size = list(np.int32(np.asarray(img.shape)/num_chunks))[::-1]
-        img = torch.tensor(img).permute(-1, 0, 1).to(DEVICE)
+    def upscale_img(self, img: torch.tensor, num_chunks:int=1,) -> np.ndarray:
+        _b, _c, img_h, img_w = img.shape
+        img = img.to(DEVICE)
+
+        downscaled_h = int(img_h / num_chunks)
+        downscaled_w = int(img_w / num_chunks)
+        
+        upscaled_h = int(img_h * self.scale)
+        upscaled_w = int(img_w * self.scale)
         # img = torchvision.transforms.PILToTensor()(pil_img) / 255.
 
-        upscaled_img_shape = (3, img.size[0]*self.scale, img.size[1]*self.scale)
+        upscaled_img_shape = (3, img_h*self.scale, img_w*self.scale)
         upscaled_img = np.zeros(upscaled_img_shape)
 
         for h_idx in range(num_chunks):
             for w_idx in range(num_chunks):
                 img_crop = img[
                     :,
-                    h_idx*img_size[0]:(h_idx+1)*img_size[0], 
-                    w_idx*img_size[1]:(w_idx+1)*img_size[1],
+                    :,
+                    h_idx*downscaled_h:(h_idx+1)*downscaled_h, 
+                    w_idx*downscaled_w:(w_idx+1)*downscaled_w,
                 ]
 
-                img_crop = img_crop[None, :].to(DEVICE)
+                img_crop = img_crop.to(DEVICE)
 
                 with torch.no_grad():
-                    upscaled_crop = model(img_crop).data.squeeze().float().cpu().clamp_(0, 1).numpy()
+                    upscaled_crop = self.model(img_crop).data.squeeze().float().cpu().clamp_(0, 1).numpy()
 
                 upscaled_img[
                     :,
-                    h_idx*pil_img.size[1]:(h_idx+1)*pil_img.size[1], 
-                    w_idx*pil_img.size[0]:(w_idx+1)*pil_img.size[0],
+                    h_idx*upscaled_h:(h_idx+1)*upscaled_h, 
+                    w_idx*upscaled_w:(w_idx+1)*upscaled_w,
                 ] = upscaled_crop
                 
 
         upscaled_img = np.transpose(upscaled_img[[2, 1, 0], :, :], (1, 2, 0))
-        upscaled_img = (upscaled_img * 255.0).round()
 
         return upscaled_img
 

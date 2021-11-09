@@ -1,6 +1,7 @@
 import os
 from typing import *
 
+from loguru import logger
 import torch
 import torchvision
 import requests
@@ -103,15 +104,18 @@ def scale_crop_tensor(crop_tensor: torch.Tensor, ) -> torch.Tensor:
         torch.Tensor: scaled crop.
     """
     crop_size = crop_tensor.shape[2::]
+    logger.debug(f"IMAGE CROP SIZE: {crop_size}")
 
-    # if any([size > MAX_IMG_DIM for size in crop_size]):
-    scale_factor = max(crop_size) / MAX_IMG_DIM
-    scale_factor = scale_factor
+    if any([size > MAX_IMG_DIM for size in crop_size]):
+        scale_factor = max(crop_size) / MAX_IMG_DIM
+        scale_factor = scale_factor
 
-    crop_size = tuple(np.asarray(crop_size) / scale_factor)
+        crop_size = tuple(np.asarray(crop_size) / scale_factor)
 
     # NOTE: scale to the nearest multiples of 16
     crop_size = tuple(np.int32(np.round(crop_size) / 16) * 16)
+    logger.debug(f"SCALED CROP SIZE: {crop_size}")
+
 
     crop_tensor = torch.nn.functional.interpolate(
         crop_tensor,
@@ -142,7 +146,7 @@ def merge_gen_img_into_canvas(
         [type]: [description]
     """
     if not torch.is_tensor(gen_img):
-        gen_img = torch.tensor(gen_img[None, :].permute(0, 3, 1, 2))
+        gen_img = torch.tensor(gen_img[None, :]).permute(0, 3, 1, 2)
 
     if not torch.is_tensor(mask):
         mask = torch.tensor(mask[None, None, ...])

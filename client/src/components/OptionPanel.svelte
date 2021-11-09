@@ -35,11 +35,14 @@
         <button on:click={() => optEvents.accept()}>
             <h4>Accept</h4>
         </button>
-        <button on:click={() => optEvents.resume()}>
-            <h4>Resume</h4>
-        </button>
         <button on:click={() => optEvents.discard()}>
             <h4>Discard</h4>
+        </button>
+        <button on:click={() => optEvents.upscale()}>
+            <h4>Upscale</h4>
+        </button>
+        <button on:click={() => optEvents.resume()}>
+            <h4>Resume</h4>
         </button>
     {/if}
     <!-- {/if} -->

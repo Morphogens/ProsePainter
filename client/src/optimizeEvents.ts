@@ -58,6 +58,14 @@ export function accept() {
     mode.set(Mode.MaskDraw)
 }
 
+export function upscale() {
+    const data = getGenerationData()
+    data.backgroundImg = imgTob64(get(lastOptimizationResult))
+    validateGenerationData(data)
+    messageServer('upscale-generation', data)
+    mode.set(Mode.Optimizing)
+}
+
 export function pause() {
     // TODO
     // messageServer("pause-generation", {})

@@ -63,7 +63,7 @@
         bind:value={$numRecSteps}
         min="0"
         max="64"
-        step=8
+        step=4
     />
     {$numRecSteps}
 
