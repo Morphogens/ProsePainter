@@ -233,6 +233,10 @@
         border-radius: 50%;
         width: 50px;
         height: 50px;
-        padding: 0px;
+        padding: 8px;
+    }
+    #downloadButton img {
+        width: 100%;
+        height: 100%;
     }
 </style>
