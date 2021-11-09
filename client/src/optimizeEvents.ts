@@ -1,15 +1,16 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
 import { addEventListener, messageServer } from "@/lib/socket";
-import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt } from './stores'
+import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt, numRecSteps } from './stores'
 import { imgTob64 } from './utils';
 
 interface StartGenerationData {
     prompt: string
     stylePrompt: string,
-    imageBase64: string
-    learningRate: number
-    backgroundImg: string
+    imageBase64: string,
+    learningRate: number,
+    backgroundImg: string,
+    numRecSteps: number | null
 }
 
 function getGenerationData():StartGenerationData {
@@ -19,12 +20,16 @@ function getGenerationData():StartGenerationData {
         learningRate: get(learningRate) / 1000,
         imageBase64: get(maskCanvas).canvasBase64,
         backgroundImg: get(mainCanvas).canvasBase64,
+        numRecSteps: get(numRecSteps),
     }
 }
 
 function validateGenerationData(data:StartGenerationData) {
     for (const [key, value] of Object.entries(data)) {
         if (key == 'stylePrompt') {
+            continue
+        }
+        if (key == 'numRecSteps') {
             continue
         }
         if (!value || value.length == 0) {
@@ -67,7 +72,7 @@ export function resume() {
     const data = getGenerationData()
     data.backgroundImg = imgTob64(get(lastOptimizationResult))
     validateGenerationData(data)
-    messageServer('start-generation', data)
+    messageServer('resume-generation', data)
     mode.set(Mode.Optimizing)
 }
 

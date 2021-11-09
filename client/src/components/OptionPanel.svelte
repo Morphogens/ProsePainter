@@ -1,6 +1,6 @@
 <script lang="ts">
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
-    import { learningRate, prompt, mode, canvasSize, stylePrompt } from "@/stores";
+    import { learningRate, prompt, mode, canvasSize, stylePrompt, numRecSteps } from "@/stores";
     import * as optEvents from "../optimizeEvents";
     import { socketOpen } from "@/lib/socket";
     import { Mode } from "../types";
@@ -44,11 +44,15 @@
             <img src="/eraser.png" alt="erase-mask" />
         </button>
         <br>
+
         <button on:click={() => maskCanvas.clear()}>
             <p>Clear Mask</p>
         </button>
-        <p>Radius={maskCanvas.radius}</p>
+
+        <p>Radius</p>
         <input type="range" bind:value={maskCanvas.radius} min="1" max="96" />
+        <p>{maskCanvas.radius}</p>
+
         <p>Softness</p>
         <input
             type="range"
@@ -57,7 +61,9 @@
             max="20"
             step="any"
         />
-        <p>learningRate</p>
+        {maskCanvas.softness}
+
+        <p>Learning Rate</p>
         <input
             type="range"
             bind:value={$learningRate}
@@ -66,6 +72,16 @@
             step="1"
         />
         {$learningRate / 1000}
+        
+        <p>Reconstruction Steps</p>
+        <input
+            type="range"
+            bind:value={$numRecSteps}
+            min="0"
+            max="64"
+            step=1
+        />
+        {$numRecSteps}
 
         {#if $socketOpen}
             <button on:click={() => optEvents.start()} style='background-color: #4caf50;'>
