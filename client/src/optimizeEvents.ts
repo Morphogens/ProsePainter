@@ -79,6 +79,10 @@ export function resume() {
 addEventListener("message", (e) => {
     console.log("MESSAGE RECEIVED!")
     const message = JSON.parse(e.data)
+    if (get(mode) !== Mode.Optimizing) {
+        // If we get a message from the server after the user can paused.
+        return
+    }
     if (message.image) {
         console.log("IMAGE RECEIVED!")
         const newImage = new Image()

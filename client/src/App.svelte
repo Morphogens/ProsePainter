@@ -93,17 +93,6 @@
 
 <svelte:window on:keydown={onKeyDown} />
 
-<div id="modeToggle">
-    <button
-        class:selected={$mode == Mode.DirectDraw}
-        on:click={(e) => ($mode = Mode.DirectDraw)}><p>Draw</p></button
-    >
-    <button
-        class:selected={$mode == Mode.MaskDraw}
-        on:click={(e) => ($mode = Mode.MaskDraw)}><p>Magic Draw</p></button
-    >
-</div>
-
 <OptionPanel maskCanvas={$maskCanvas} mainCanvas={$mainCanvas} />
 
 {#if $mode == Mode.DirectDraw || $mode == Mode.MaskDraw}
@@ -153,20 +142,21 @@
             </div>
             <canvas
                 id="outlineCanvas"
+                class='hiddenOverlay'
                 width={$canvasSize[0]}
                 height={$canvasSize[1]}
                 bind:this={outlineCanvas}
             />
             {#if $lastOptimizationResult}
-                <img id="optPreview" src={$lastOptimizationResult.src} />
+                <img id="optPreview" class='hiddenOverlay' src={$lastOptimizationResult.src} alt=''/>
             {/if}
             <canvas
                 id="cursorCanvas"
+                class='hiddenOverlay'
                 width={$canvasSize[0]}
                 height={$canvasSize[1]}
                 bind:this={cursorCanvas}
             />
-            <!-- style="width:{$canvasSize[0]}px;height:{$canvasSize[1]}px;pointer-events:none;" -->
         </div>
     </div>
     <!-- {#if maskCanvasBase64}
@@ -180,8 +170,7 @@
         left: 0px;
         position: absolute;
     }
-    #cursorCanvas,
-    #outlineCanvas {
+    .hiddenOverlay {
         cursor: none;
         pointer-events: none;
     }
@@ -196,13 +185,6 @@
 
     .hidden {
         display: none;
-    }
-    #modeToggle {
-        position: fixed;
-        top: 0px;
-        left: 0px;
-        background: white;
-        z-index: 1;
     }
     :global(button) {
         cursor: pointer;
