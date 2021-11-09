@@ -9,11 +9,13 @@ const events = []
 export const socketOpen = writable(false)
 
 function attemptConnect() {
-    console.log('Opening socket connection...');    
+    if (get(socketOpen)) {
+        return
+    }
+    console.log('Attempting socket connection...');    
     socket = new WebSocket(serverURL)
     socket.onerror = function(error) {
         console.log('Socket error:', error)
-        setTimeout(attemptConnect, 1000)
     };
     socket.onopen = () => { 
         console.log('Websocket connected!');
@@ -22,8 +24,7 @@ function attemptConnect() {
             console.log('registering event', name);
             socket.addEventListener(name, callback) 
         }
-    };
-
+    }
     socket.onclose = (closeEvent) => {
         const reason = closeEvent.reason
         console.log('Socket closed:', reason)
