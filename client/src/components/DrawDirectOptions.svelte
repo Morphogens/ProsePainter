@@ -27,16 +27,18 @@
         bind:value={mainCanvas.strokeColor}
     />
     <label for="head">Head</label>
-    <p>Radius={mainCanvas.radius}</p>
+    <p>Radius</p>
     <input type="range" bind:value={mainCanvas.radius} min="1" max="96" />
+    {mainCanvas.radius}
     <p>Softness</p>
     <input
         type="range"
         bind:value={mainCanvas.softness}
         min="0"
         max="20"
-        step="any"
+        step=1
     />
+    {mainCanvas.softness}
     <p>Select an image</p>
     <input type="file" accept=".jpg, .jpeg, .png" on:change={onFiles} />
 {/if}

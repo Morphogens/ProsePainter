@@ -5,6 +5,7 @@
         prompt,
         mode,
         stylePrompt,
+        numRecSteps,
     } from "@/stores";
     import * as optEvents from "../optimizeEvents";
     import { socketOpen } from "@/lib/socket";
@@ -34,25 +35,37 @@
     <button on:click={() => maskCanvas.clear()}>
         <p>Clear Mask</p>
     </button>
-    <p>Radius={maskCanvas.radius}</p>
+    <p>Radius</p>
     <input type="range" bind:value={maskCanvas.radius} min="1" max="96" />
+    {maskCanvas.radius}
     <p>Softness</p>
     <input
         type="range"
         bind:value={maskCanvas.softness}
         min="0"
         max="20"
-        step="any"
+        step=1
     />
-    <p>learningRate</p>
+    {maskCanvas.softness}
+    <p>Learning Rate</p>
     <input
         type="range"
         bind:value={$learningRate}
         min="0"
         max="500.0"
-        step="1"
+        step=10
     />
     {$learningRate / 1000}
+    
+    <p>Rec. Steps</p>
+    <input
+        type="range"
+        bind:value={$numRecSteps}
+        min="0"
+        max="64"
+        step=8
+    />
+    {$numRecSteps}
 
     {#if $socketOpen}
         <button

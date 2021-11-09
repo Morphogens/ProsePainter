@@ -102,6 +102,7 @@ class UserSession:
         lr: float = 0.5,
         style_prompt: str = "",
         padding_percent: float = 5.,
+        num_rec_steps: int = 16,
         **kwargs,
     ) -> None:
         """
@@ -175,7 +176,7 @@ class UserSession:
                 style_prompt=style_prompt,
             )
         
-        self.mask_optimizer.optimize_reconstruction()
+        self.mask_optimizer.optimize_reconstruction(num_iters=num_rec_steps,)
 
 
         gen_img = None
@@ -230,6 +231,7 @@ class UserSession:
         self,
         canvas_img: str,
         mask: str,
+        padding_percent: 0,
         **kwargs,
     ):
         esrgan = ESRGAN()
@@ -299,6 +301,7 @@ class UserSession:
                         "lr": data_dict["learningRate"],
                         "style_prompt": data_dict["stylePrompt"],
                         "padding_percent": 10.,
+                        "num_rec_steps": data_dict["numRecSteps"],
                     }
 
                     optimize_layer_thread = threading.Thread(
