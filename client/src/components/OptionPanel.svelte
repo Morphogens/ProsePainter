@@ -22,6 +22,9 @@
 </script>
 
 <div id="optionPanel">
+    <!-- <button>
+
+    </button> -->
     {#if $mode == Mode.MaskDraw && maskCanvas}
         <p>What would you like to draw?</p>
         <input type="text" minlength="3" bind:value={$prompt} />

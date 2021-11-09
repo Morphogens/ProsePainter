@@ -1,6 +1,6 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
-import { socket, messageServer } from "@/lib/socket";
+import { addEventListener, messageServer } from "@/lib/socket";
 import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt } from './stores'
 import { imgTob64 } from './utils';
 
@@ -12,14 +12,17 @@ interface StartGenerationData {
     backgroundImg: string
 }
 
-export function start() {
-    const data: StartGenerationData = {
+function getGenerationData():StartGenerationData {
+    return {
         prompt: get(prompt),
         stylePrompt: get(stylePrompt)??'',
         learningRate: get(learningRate) / 1000,
         imageBase64: get(maskCanvas).canvasBase64,
         backgroundImg: get(mainCanvas).canvasBase64,
     }
+}
+
+function validateGenerationData(data:StartGenerationData) {
     for (const [key, value] of Object.entries(data)) {
         if (key == 'stylePrompt') {
             continue
@@ -28,6 +31,11 @@ export function start() {
             throw new Error(`Empty value for: ${key}.`)
         }
     }
+}
+
+export function start() {
+    const data = getGenerationData()
+    validateGenerationData(data)
     messageServer('start-generation', data)
     mode.set(Mode.Optimizing)
 }
@@ -56,26 +64,14 @@ export function resume() {
     // TODO
     // messageServer("resume-generation", {})
     // like start() but use lastOptimizationResult instead of main canvas
-    const data: StartGenerationData = {
-        prompt: get(prompt),
-        stylePrompt: get(stylePrompt)??'',
-        learningRate: get(learningRate) / 1000,
-        imageBase64: get(maskCanvasBase64),
-        backgroundImg: imgTob64(get(lastOptimizationResult)),
-    }
-    for (const [key, value] of Object.entries(data)) {
-        if (key == 'stylePrompt') {
-            continue
-        }
-        if (!value || value.length == 0) {
-            throw new Error(`Empty value for: ${key}.`)
-        }
-    }
+    const data = getGenerationData()
+    data.backgroundImg = imgTob64(get(lastOptimizationResult))
+    validateGenerationData(data)
     messageServer('start-generation', data)
     mode.set(Mode.Optimizing)
 }
 
-socket.addEventListener("message", (e) => {
+addEventListener("message", (e) => {
     console.log("MESSAGE RECEIVED!")
     const message = JSON.parse(e.data)
     if (message.image) {
