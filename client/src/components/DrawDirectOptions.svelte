@@ -4,6 +4,7 @@
     import { Mode } from "../types";
     import { loadImage } from "@/utils";
     import { tick } from "svelte";
+    import Slider from "./Slider.svelte";
     // export let maskCanvas: DrawCanvas;
     export let mainCanvas: DrawCanvas;
 
@@ -20,25 +21,15 @@
 </script>
 
 {#if $mode == Mode.DirectDraw && mainCanvas}
-    <input
-        type="color"
-        id="head"
-        name="head"
-        bind:value={mainCanvas.strokeColor}
+    <input type="color" bind:value={mainCanvas.strokeColor} />
+    <Slider
+        name="Radius"
+        bind:val={mainCanvas.radius}
+        min={1}
+        max={96}
+        step={1}
     />
-    <label for="head">Head</label>
-    <p>Radius</p>
-    <input type="range" bind:value={mainCanvas.radius} min="1" max="96" />
-    {mainCanvas.radius}
-    <p>Softness</p>
-    <input
-        type="range"
-        bind:value={mainCanvas.softness}
-        min="0"
-        max="20"
-        step=1
-    />
-    {mainCanvas.softness}
+    <Slider name="Softness" bind:val={mainCanvas.softness} max={20} step={1} />
     <p>Select an image</p>
     <input type="file" accept=".jpg, .jpeg, .png" on:change={onFiles} />
 {/if}

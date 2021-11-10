@@ -128,10 +128,7 @@
                 defaultImageUrl={startBackgroundUrl}
                 bind:this={$mainCanvas}
             />
-            <div
-                class:hidden={$mode == Mode.DirectDraw || !mouseover}
-                style="opacity:0.5;"
-            >
+            <div class:hidden={$mode == Mode.DirectDraw || !mouseover}>
                 <DrawCanvas
                     width={$canvasSize[0]}
                     height={$canvasSize[1]}
@@ -142,17 +139,22 @@
             </div>
             <canvas
                 id="outlineCanvas"
-                class='hiddenOverlay'
+                class="hiddenOverlay"
                 width={$canvasSize[0]}
                 height={$canvasSize[1]}
                 bind:this={outlineCanvas}
             />
             {#if $lastOptimizationResult}
-                <img id="optPreview" class='hiddenOverlay' src={$lastOptimizationResult.src} alt=''/>
+                <img
+                    id="optPreview"
+                    class="hiddenOverlay"
+                    src={$lastOptimizationResult.src}
+                    alt=""
+                />
             {/if}
             <canvas
                 id="cursorCanvas"
-                class='hiddenOverlay'
+                class="hiddenOverlay"
                 width={$canvasSize[0]}
                 height={$canvasSize[1]}
                 bind:this={cursorCanvas}

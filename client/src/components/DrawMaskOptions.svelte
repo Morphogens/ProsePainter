@@ -10,7 +10,9 @@
     import * as optEvents from "../optimizeEvents";
     import { socketOpen } from "@/lib/socket";
     import { Mode } from "../types";
+    import Slider from "./Slider.svelte";
     export let maskCanvas: DrawCanvas;
+    let seeAdvanced = false
 </script>
 
 {#if $mode == Mode.MaskDraw && maskCanvas}
@@ -31,42 +33,41 @@
     >
         <img src="/eraser.png" alt="erase-mask" />
     </button>
-    <br />
     <button on:click={() => maskCanvas.clear()}>
-        <p>Clear Mask</p>
+        <p>Clear</p>
     </button>
-    <p>Radius</p>
-    <input type="range" bind:value={maskCanvas.radius} min="1" max="96" />
-    {maskCanvas.radius}
-    <p>Softness</p>
-    <input
-        type="range"
-        bind:value={maskCanvas.softness}
-        min="0"
-        max="20"
-        step=1
+    <Slider
+        name="Radius"
+        bind:val={maskCanvas.radius}
+        min={1}
+        max={96}
+        step={1}
     />
-    {maskCanvas.softness}
-    <p>Learning Rate</p>
-    <input
-        type="range"
-        bind:value={$learningRate}
-        min="0"
-        max="500.0"
-        step=10
+    <Slider
+        name="Softness"
+        bind:val={maskCanvas.softness}
+        max={20}
+        step={1}
     />
-    {$learningRate / 1000}
-    
-    <p>Rec. Steps</p>
-    <input
-        type="range"
-        bind:value={$numRecSteps}
-        min="0"
-        max="64"
-        step=4
-    />
-    {$numRecSteps}
-
+    {#if seeAdvanced}
+        <Slider
+            name="Learn Rate"
+            bind:val={$learningRate}
+            max={500}
+            step={10}
+        />
+        <Slider
+            name="Rec. Steps"
+            bind:val={$numRecSteps}
+            max={64}
+            step={4}
+        />
+    {:else}
+        <button on:click={() => seeAdvanced=true}>
+            <p>Advanced</p>
+        </button>
+        <br>
+    {/if}
     {#if $socketOpen}
         <button
             on:click={() => optEvents.start()}
@@ -80,4 +81,16 @@
         </button>
         <p>Socket not open</p>
     {/if}
+    <br>
 {/if}
+
+<style>
+    button {
+        width: 100px;
+    }
+    p {
+        text-align: center;
+        margin-bottom: 2px;
+        margin-top: 6px;
+    }
+</style>

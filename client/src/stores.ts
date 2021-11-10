@@ -6,7 +6,7 @@ import type DrawCanvas from './components/DrawCanvas'
 export const prompt = localStorageWritable('prompt', 'a dog')
 export const stylePrompt = localStorageWritable('stylePrompt', '')
 export const learningRate = localStorageWritable('learningRate', 250)
-export const numRecSteps = localStorageWritable('numRecSteps', 16)
+export const numRecSteps = localStorageWritable('numRecSteps', 8)
 // export const mode = localStorageWritable('mode', Mode.MaskDraw as Mode)
 export const mode = writable(Mode.MaskDraw as Mode)
 export const canvasSize = localStorageWritable('canvasSize', [512, 512])
