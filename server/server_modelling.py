@@ -345,8 +345,8 @@ class ESRGAN:
         upscaled_w = int(img_w * self.scale)
         # img = torchvision.transforms.PILToTensor()(pil_img) / 255.
 
-        upscaled_img_shape = (3, img_h*self.scale, img_w*self.scale)
-        upscaled_img = np.zeros(upscaled_img_shape)
+        upscaled_img_shape = (1, 3, img_h*self.scale, img_w*self.scale)
+        upscaled_img = torch.zeros(upscaled_img_shape)
 
         for h_idx in range(num_chunks):
             for w_idx in range(num_chunks):
@@ -360,16 +360,17 @@ class ESRGAN:
                 img_crop = img_crop.to(DEVICE)
 
                 with torch.no_grad():
-                    upscaled_crop = self.model(img_crop).data.squeeze().float().cpu().clamp_(0, 1).numpy()
+                    upscaled_crop = self.model(img_crop).clamp_(0, 1)
 
                 upscaled_img[
+                    :,
                     :,
                     h_idx*upscaled_h:(h_idx+1)*upscaled_h, 
                     w_idx*upscaled_w:(w_idx+1)*upscaled_w,
                 ] = upscaled_crop
                 
 
-        upscaled_img = np.transpose(upscaled_img[[2, 1, 0], :, :], (1, 2, 0))
+        # upscaled_img = np.transpose(upscaled_img[[2, 1, 0], :, :], (1, 2, 0))
 
         return upscaled_img
 
