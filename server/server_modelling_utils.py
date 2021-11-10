@@ -8,7 +8,7 @@ import requests
 import numpy as np
 from PIL import Image
 
-from server.server_config import DEBUG, DEBUG_OUT_DIR, MAX_IMG_DIM
+from server.server_config import DEBUG, DEBUG_OUT_DIR, MAX_IMG_DIM, MIN_IMG_DIM
 
 
 def process_mask(
@@ -112,8 +112,15 @@ def scale_crop_tensor(crop_tensor: torch.Tensor, ) -> torch.Tensor:
 
         crop_size = tuple(np.asarray(crop_size) / scale_factor)
 
+    elif all([size < MIN_IMG_DIM for size in crop_size]):
+        scale_factor = max(crop_size) / MIN_IMG_DIM
+        scale_factor = scale_factor
+
+        crop_size = tuple(np.asarray(crop_size) / scale_factor)
+
+
     # NOTE: scale to the nearest multiples of 16
-    crop_size = tuple(np.int32(np.round(crop_size) / 16) * 16)
+    crop_size = tuple(np.int32(np.ceil(crop_size) / 16) * 16)
     logger.debug(f"SCALED CROP SIZE: {crop_size}")
 
 
