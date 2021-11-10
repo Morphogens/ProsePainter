@@ -1,4 +1,4 @@
-name: nuclear
+name: prosepaint
 channels:
   - conda-forge
   - anaconda
