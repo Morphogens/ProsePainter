@@ -268,8 +268,11 @@ class UserSession:
         )
         mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        num_chunks = int(np.ceil((img_height * img_width) / 256**2))
-        upscaled_crop = esrgan.upscale_img(img_crop_tensor*mask_crop_tensor, num_chunks,)
+        _b, _ch, crop_height, crop_width = img_crop_tensor.shape
+
+        num_chunks = int(np.ceil((crop_height * crop_width) / 256**2))
+        upscaled_crop = esrgan.upscale_img(img_crop_tensor, num_chunks,)
+
         
         updated_canvas = merge_gen_img_into_canvas(
             upscaled_crop,
