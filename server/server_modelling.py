@@ -130,7 +130,7 @@ class MaskOptimizer:
             style_latents = style_latents.to(DEVICE)
             self.style_latents = style_latents
 
-        self.gen_latents = self.model.get_latents_from_img(cond_img * 2 - 1, )
+        self.gen_latents = self.model.get_latents_from_img(cond_img, )
         self.gen_latents = self.gen_latents.to(DEVICE)
         self.gen_latents = self.gen_latents.detach().clone()
         self.gen_latents.requires_grad = True
