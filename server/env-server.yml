@@ -15,4 +15,4 @@ dependencies:
     - fastapi==0.68.1
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
-    - hugging-gan-test
+    - geniverse
