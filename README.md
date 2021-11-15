@@ -12,7 +12,7 @@ Due to the use of CLIP, it is recommended to use **python3.7** and **torch 1.7.1
 
 With the following command you can set up a conda environment named _prosepaint_ where all the dependencies will be installed.
 ```bash
-conda env create -f server/env-server.yaml
+conda env create -f server/env-server.yml
 ```
 
 ### Run Python Server:
