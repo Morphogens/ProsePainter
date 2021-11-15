@@ -176,7 +176,7 @@ class UserSession:
                 style_prompt=style_prompt,
             )
         
-        self.mask_optimizer.optimize_reconstruction(num_iters=num_rec_steps,)
+            self.mask_optimizer.optimize_reconstruction(num_iters=num_rec_steps,)
 
 
         gen_img = None

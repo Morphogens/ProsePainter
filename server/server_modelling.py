@@ -5,7 +5,7 @@ from typing import *
 import torch
 import torchvision
 import numpy as np
-from bigotis.models import TamingDecoder, Aphantasia
+from geniverse.models import TamingDecoder, Aphantasia
 from loguru import logger
 
 from server.server_config import MODEL_NAME, DEBUG, DEBUG_OUT_DIR, ESRGAN_MODEL_PATH
