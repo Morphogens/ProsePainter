@@ -63,7 +63,10 @@ class ModelFactory:
         if model_name == "esrgan":
             if self.esrgan is None:
                 if not os.path.exists(ESRGAN_MODEL_PATH):
-                    os.makedirs(os.path.dirname(ESRGAN_MODEL_PATH), exist_ok=True,)
+                    os.makedirs(
+                        os.path.dirname(ESRGAN_MODEL_PATH),
+                        exist_ok=True,
+                    )
                     download_file_from_google_drive(
                         '1TPrz5QKd8DHHt1k8SRtm6tMiPjz_Qene',
                         ESRGAN_MODEL_PATH,
@@ -71,9 +74,17 @@ class ModelFactory:
 
                     logger.debug(f"ESRGAN downloaded in {ESRGAN_MODEL_PATH}")
 
-
-                self.esrgan = RRDBNet(3, 3, 64, 23, gc=32,)
-                self.esrgan.load_state_dict(torch.load(ESRGAN_MODEL_PATH), strict=True,)
+                self.esrgan = RRDBNet(
+                    3,
+                    3,
+                    64,
+                    23,
+                    gc=32,
+                )
+                self.esrgan.load_state_dict(
+                    torch.load(ESRGAN_MODEL_PATH),
+                    strict=True,
+                )
                 self.esrgan.eval()
 
             model = self.esrgan
@@ -108,6 +119,8 @@ class MaskOptimizer:
             cond_img (np.ndarray): initial image used to start the optimization.
             mask (np.ndarray): mask determining the region to optimize.
             lr (float): learning rate.
+            rel_lr (float): learning rate for the reconstruction optimization.
+            style_prompt (str): prompt representing the style to use for the generated image.
         """
         self.mask = mask.to(DEVICE)
         self.cond_img = cond_img.to(DEVICE)
@@ -120,7 +133,7 @@ class MaskOptimizer:
         text_latents = text_latents.detach()
         text_latents = text_latents.to(DEVICE)
         self.text_latents = text_latents
-        
+
         logger.debug(f"STYLE PROMPT {style_prompt}")
 
         self.style_latents = None
@@ -142,7 +155,7 @@ class MaskOptimizer:
             betas=(0.9, 0.999),
             weight_decay=0.1,
         )
-        
+
         self.rec_optimizer = torch.optim.AdamW(
             params=[self.gen_latents],
             lr=rec_lr,
@@ -155,19 +168,28 @@ class MaskOptimizer:
     def optimize_reconstruction(
         self,
         num_iters: int = 16,
-    ):
-        rec_mask = self.mask
-        rec_mask[rec_mask>0] = 1
+    ) -> None:
+        """
+        Optimizes the current latent to maximize its similarity with the conditional image.
 
-        rec_loss_weight = self.cond_img.shape[2]*self.cond_img.shape[3]
+        Args:
+            num_iters (int, optional): Number of optimization steps. Defaults to 16.
+        """
+        rec_mask = self.mask
+        rec_mask[rec_mask > 0] = 1
+
+        rec_loss_weight = self.cond_img.shape[2] * self.cond_img.shape[3]
 
         for _iter_idx in range(num_iters):
             gen_img = self.model.get_img_from_latents(self.gen_latents, )
             gen_img = (rec_mask * gen_img) + (1 - rec_mask) * self.cond_img
-            
-            loss = rec_loss_weight * torch.nn.functional.mse_loss(gen_img, self.cond_img,)
+
+            loss = rec_loss_weight * torch.nn.functional.mse_loss(
+                gen_img,
+                self.cond_img,
+            )
             logger.debug(f"MSE LOSS {loss}")
-        
+
             self.rec_optimizer.zero_grad()
             loss.backward(retain_graph=False, )
             self.rec_optimizer.step()
@@ -176,7 +198,7 @@ class MaskOptimizer:
 
     def optimize(self, ) -> torch.Tensor:
         """
-        Perform one optimization step.
+        Perform one optimization step. Uses CLIP to maximize the encodings of the generated image and the text prompts provided.
 
         Returns:
             torch.Tensor: updated image.
@@ -203,12 +225,12 @@ class MaskOptimizer:
         img_aug = self.model.augment(gen_img, )
         img_latents = self.model.get_clip_img_encodings(img_aug, ).to(DEVICE)
 
-        loss += (self.text_latents -
-                img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
-        
+        loss += (self.text_latents - img_latents).norm(
+            dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+
         if self.style_latents is not None:
-            loss += (self.style_latents -
-                    img_latents).norm(dim=-1).div(2).arcsin().pow(2).mul(2).mean()
+            loss += (self.style_latents - img_latents).norm(
+                dim=-1).div(2).arcsin().pow(2).mul(2).mean()
 
         # TODO: integrate other losses
         # loss = -10 * torch.cosine_similarity(
@@ -250,17 +272,29 @@ class MaskOptimizer:
 
 
 # NOTE: code from https://github.com/xinntao/ESRGAN
-def make_layer(block, n_layers):
+def _make_layer(
+    layer,
+    n_layers,
+):
     layers = []
     for _ in range(n_layers):
-        layers.append(block())
+        layers.append(layer())
     return torch.nn.Sequential(*layers)
 
 
 # NOTE: code from https://github.com/xinntao/ESRGAN
 class ResidualDenseBlock_5C(torch.nn.Module):
-    def __init__(self, nf=64, gc=32, bias=True):
-        super(ResidualDenseBlock_5C, self).__init__()
+    def __init__(
+        self,
+        nf=64,
+        gc=32,
+        bias=True,
+    ):
+        super(
+            ResidualDenseBlock_5C,
+            self,
+        ).__init__()
+
         # gc: growth channel, i.e. intermediate channels
         self.conv1 = torch.nn.Conv2d(nf, gc, 3, 1, 1, bias=bias)
         self.conv2 = torch.nn.Conv2d(nf + gc, gc, 3, 1, 1, bias=bias)
@@ -272,7 +306,10 @@ class ResidualDenseBlock_5C(torch.nn.Module):
         # initialization
         # mutil.initialize_weights([self.conv1, self.conv2, self.conv3, self.conv4, self.conv5], 0.1)
 
-    def forward(self, x):
+    def forward(
+        self,
+        x,
+    ):
         x1 = self.lrelu(self.conv1(x))
         x2 = self.lrelu(self.conv2(torch.cat((x, x1), 1)))
         x3 = self.lrelu(self.conv3(torch.cat((x, x1, x2), 1)))
@@ -282,16 +319,23 @@ class ResidualDenseBlock_5C(torch.nn.Module):
 
 
 # NOTE: code from https://github.com/xinntao/ESRGAN
-class RRDB(torch.nn.Module):
+class RRDB(
+        torch.nn.Module, ):
     '''Residual in Residual Dense Block'''
-
-    def __init__(self, nf, gc=32):
+    def __init__(
+        self,
+        nf,
+        gc=32,
+    ):
         super(RRDB, self).__init__()
         self.RDB1 = ResidualDenseBlock_5C(nf, gc)
         self.RDB2 = ResidualDenseBlock_5C(nf, gc)
         self.RDB3 = ResidualDenseBlock_5C(nf, gc)
 
-    def forward(self, x):
+    def forward(
+        self,
+        x,
+    ):
         out = self.RDB1(x)
         out = self.RDB2(out)
         out = self.RDB3(out)
@@ -299,13 +343,24 @@ class RRDB(torch.nn.Module):
 
 
 # NOTE: code from https://github.com/xinntao/ESRGAN
-class RRDBNet(torch.nn.Module):
-    def __init__(self, in_nc, out_nc, nf, nb, gc=32):
-        super(RRDBNet, self).__init__()
+class RRDBNet(
+        torch.nn.Module, ):
+    def __init__(
+        self,
+        in_nc,
+        out_nc,
+        nf,
+        nb,
+        gc=32,
+    ):
+        super(
+            RRDBNet,
+            self,
+        ).__init__()
         RRDB_block_f = functools.partial(RRDB, nf=nf, gc=gc)
 
         self.conv_first = torch.nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True)
-        self.RRDB_trunk = make_layer(RRDB_block_f, nb)
+        self.RRDB_trunk = _make_layer(RRDB_block_f, nb)
         self.trunk_conv = torch.nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         #### upsampling
         self.upconv1 = torch.nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
@@ -315,62 +370,80 @@ class RRDBNet(torch.nn.Module):
 
         self.lrelu = torch.nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
-    def forward(self, x):
+    def forward(
+        self,
+        x,
+    ):
         fea = self.conv_first(x)
         trunk = self.trunk_conv(self.RRDB_trunk(fea))
         fea = fea + trunk
 
-        fea = self.lrelu(self.upconv1(torch.nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
-        fea = self.lrelu(self.upconv2(torch.nn.functional.interpolate(fea, scale_factor=2, mode='nearest')))
+        fea = self.lrelu(
+            self.upconv1(
+                torch.nn.functional.interpolate(fea,
+                                                scale_factor=2,
+                                                mode='nearest')))
+        fea = self.lrelu(
+            self.upconv2(
+                torch.nn.functional.interpolate(fea,
+                                                scale_factor=2,
+                                                mode='nearest')))
         out = self.conv_last(self.lrelu(self.HRconv(fea)))
 
         return out
 
+
 class ESRGAN:
-    def __init__(
-        self, 
-    ) -> None:
+    """
+    ESRGAN functionalities for loading and using it to upscale images.
+    """
+    def __init__(self, ) -> None:
         self.model = model_factory.load_model("esrgan")
 
         self.scale = 4
 
-    def upscale_img(self, img: torch.tensor, num_chunks:int=1,) -> np.ndarray:
+    def upscale_img(
+        self,
+        img: torch.tensor,
+        num_chunks: int = 1,
+    ) -> np.ndarray:
+        """
+        Upscale an image using ESRGAN. 
+
+        Args:
+            img (torch.tensor): image  to be upscaled.
+            num_chunks (int, optional): Number of patches to upscale. Useful for large images. Defaults to 1.
+
+        Returns:
+            np.ndarray: upscaled image.
+        """
         _b, _c, img_h, img_w = img.shape
         img = img.to(DEVICE)
 
         downscaled_h = int(img_h / num_chunks)
         downscaled_w = int(img_w / num_chunks)
-        
+
         upscaled_h = int(img_h * self.scale)
         upscaled_w = int(img_w * self.scale)
-        # img = torchvision.transforms.PILToTensor()(pil_img) / 255.
 
-        upscaled_img_shape = (1, 3, img_h*self.scale, img_w*self.scale)
+        upscaled_img_shape = (1, 3, img_h * self.scale, img_w * self.scale)
         upscaled_img = torch.zeros(upscaled_img_shape)
 
         for h_idx in range(num_chunks):
             for w_idx in range(num_chunks):
-                img_crop = img[
-                    :,
-                    :,
-                    h_idx*downscaled_h:(h_idx+1)*downscaled_h, 
-                    w_idx*downscaled_w:(w_idx+1)*downscaled_w,
-                ]
+                img_crop = img[:, :,
+                               h_idx * downscaled_h:(h_idx + 1) * downscaled_h,
+                               w_idx * downscaled_w:(w_idx + 1) *
+                               downscaled_w, ]
 
                 img_crop = img_crop.to(DEVICE)
 
                 with torch.no_grad():
                     upscaled_crop = self.model(img_crop).clamp_(0, 1)
 
-                upscaled_img[
-                    :,
-                    :,
-                    h_idx*upscaled_h:(h_idx+1)*upscaled_h, 
-                    w_idx*upscaled_w:(w_idx+1)*upscaled_w,
-                ] = upscaled_crop
-                
-
-        # upscaled_img = np.transpose(upscaled_img[[2, 1, 0], :, :], (1, 2, 0))
+                upscaled_img[:, :, h_idx * upscaled_h:(h_idx + 1) * upscaled_h,
+                             w_idx * upscaled_w:(w_idx + 1) *
+                             upscaled_w, ] = upscaled_crop
 
         return upscaled_img
 
