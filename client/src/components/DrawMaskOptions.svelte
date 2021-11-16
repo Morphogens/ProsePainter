@@ -31,7 +31,7 @@
         on:click={() => (maskCanvas.erasing = true)}
         class:selected={maskCanvas.erasing}
     >
-        <img src="/eraser.png" alt="erase-mask" />
+        <img src="/images/eraser.png" alt="erase-mask" />
     </button>
     <button on:click={() => maskCanvas.clear()}>
         <p>Clear</p>
