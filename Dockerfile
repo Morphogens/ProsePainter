@@ -11,13 +11,20 @@ COPY client ./
 
 RUN npm run build
 
-FROM continuumio/miniconda3
+FROM frolvlad/alpine-miniconda3
 
 WORKDIR /server
 
 COPY server/env-server.yml ./
 
-RUN conda env create -q -f ./env-server.yml
+RUN conda env create -q -f ./env-server.yml \
+  # Steps to reduce docker image size from https://jcristharif.com/conda-docker-tips.html
+  && conda clean -afy \
+  && find /opt/conda/ -follow -type f -name '*.a' -delete \
+  && find /opt/conda/ -follow -type f -name '*.pyc' -delete \
+  && find /opt/conda/ -follow -type f -name '*.js.map' -delete \
+  && find /opt/conda/lib/python*/site-packages/bokeh/server/static -follow -type f -name '*.js' ! -name '*.min.js' -delete
+
 
 COPY --from=builder /client/dist /client-dist
 
@@ -25,6 +32,6 @@ ENV PYTHONPATH=/server
 ENV PORT 80
 ENV STATIC_PATH=/client-dist
 
-CMD ["conda", "run", "--no-capture-output", "-n", "prosepaint", "python", "./server_deploy.py"]
+CMD ["conda", "run", "--no-capture-output", "-n", "prosepaint", "python", "/server/server_deploy.py"]
 
 EXPOSE 80
