@@ -27,7 +27,7 @@ RUN conda env create -q -f ./env-server.yml \
 COPY --from=builder /client/dist /client-dist
 
 ENV PYTHONPATH=/server
-ENV PORT 80
+ENV PORT=80
 ENV STATIC_PATH=/client-dist
 
 CMD ["conda", "run", "--no-capture-output", "-n", "prosepaint", "python", "/server/server_deploy.py"]
