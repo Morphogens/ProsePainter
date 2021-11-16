@@ -17,7 +17,7 @@ WORKDIR /server
 
 COPY server/env-server.yml ./
 
-RUN conda env create -f ./env-server.yml
+RUN conda env create -q -f ./env-server.yml
 
 COPY --from=builder /client/dist /client-dist
 
