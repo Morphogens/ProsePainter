@@ -25,6 +25,6 @@ COPY --from=builder /client/dist /client-dist
 ENV PYTHONPATH=/server
 ENV PORT 80
 
-CMD ["python", "/server/server_deploy.py"]
+CMD ["conda", "run", "--no-capture-output", "-n", "./env-server.yml", "python", "./server_deploy.py"]
 
 EXPOSE 80
