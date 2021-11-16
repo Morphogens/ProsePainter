@@ -11,7 +11,7 @@ COPY client ./
 
 RUN npm run build
 
-FROM pytorch/pytorch
+FROM continuumio/miniconda3
 
 WORKDIR /server
 
