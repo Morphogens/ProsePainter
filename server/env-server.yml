@@ -13,6 +13,7 @@ dependencies:
   - pip=21.0.1
   - pip:
     - fastapi==0.68.1
+    - starlette==0.17.0
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
     - geniverse
