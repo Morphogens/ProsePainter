@@ -4,10 +4,10 @@ Create images by ***painting with words***.
 ProsePainter combines direct digital painting with real-time guided machine-learning based image optimization. Simply state what you want and draw the region where you want it. 
 ![Tux, the Linux mascot](preview.jpg)
  
-## SETUP
+## Setup
 The app consists of a python server which does the computations and a web based interface using a nodejs server.
 
-### Install Python Server:
+### Install python server
 Due to the use of CLIP, it is recommended to use **python3.7** and **torch 1.7.1+cu110** (available [here](https://pytorch.org/get-started/previous-versions/)).
 
 With the following command you can set up a conda environment named _prosepaint_ where all the dependencies will be installed.
@@ -15,27 +15,32 @@ With the following command you can set up a conda environment named _prosepaint_
 conda env create -f server/env-server.yml
 ```
 
-### Run Python Server:
+### Run python server
 The following command will launch the uvicorn server.
 ```bash
 export PYTHONPATH=.; python server/server_deploy.py
 ```
 
-### Install NodeJS Server:
+### Install node server
 ```
 cd client
 npm install
 ```
-### Run NodeJS Server:
+### Run node server
 ```
 cd client
 npm run dev
 ```
 Open http://localhost:8003/ in your web browser.
 
-### Build Docker Container
+### Build docker container
 
 ```
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-1.amazonaws.com
-docker build .
+docker build . -t prosepainter:latest
+```
+
+### Run python server with docker
+
+```
+docker run prosepainter:latest -p 80:8004
 ```

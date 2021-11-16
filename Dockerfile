@@ -11,7 +11,7 @@ COPY client ./
 
 RUN npm run build
 
-FROM frolvlad/alpine-miniconda3
+FROM continuumio/miniconda3
 
 WORKDIR /server
 
