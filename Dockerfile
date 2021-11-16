@@ -24,6 +24,8 @@ RUN conda env create -q -f ./env-server.yml \
   && find /opt/conda/ -follow -type f -name '*.pyc' -delete \
   && find /opt/conda/ -follow -type f -name '*.js.map' -delete
 
+COPY server ./
+
 COPY --from=builder /client/dist /client-dist
 
 ENV PYTHONPATH=/server
