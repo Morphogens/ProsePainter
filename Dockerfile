@@ -28,7 +28,7 @@ COPY server ./
 
 COPY --from=builder /client/dist /client-dist
 
-ENV PYTHONPATH=/server
+ENV PYTHONPATH=/
 ENV PORT=80
 ENV STATIC_PATH=/client-dist
 

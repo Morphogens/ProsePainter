@@ -17,3 +17,4 @@ dependencies:
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
     - geniverse
+    - matplotlib  # required by geniverse
