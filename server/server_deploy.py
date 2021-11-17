@@ -387,6 +387,10 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     return
 
+@app.get("/health")
+async def index():
+    return "ok"
+
 STATIC_FOLDERS = [
     "images", # public images from public folder
     "assets"  # Built assets from vite
@@ -397,7 +401,7 @@ if os.environ.get("STATIC_PATH"):
     static_root = os.environ["STATIC_PATH"]
     for static_folder in STATIC_FOLDERS:
         static_path = f"{static_root}/{static_folder}"
-        app.mount(f"/{static_path}", StaticFiles(directory=static_path), name=static_folder)
+        app.mount(static_path, StaticFiles(directory=static_path), name=static_folder)
     
     @app.get("/")
     async def index():

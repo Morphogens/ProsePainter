@@ -13,6 +13,14 @@ RUN npm run build
 
 FROM continuumio/miniconda3
 
+# Fix for https://github.com/lhelontra/tensorflow-on-arm/issues/13
+RUN apt-get update \
+  && apt-get install -qqy gpg software-properties-common \
+  && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 1E9377A2BA9EF27F \
+  && add-apt-repository ppa:ubuntu-toolchain-r/test \
+  && apt-get update \
+  && apt-get -qqy upgrade
+
 WORKDIR /server
 
 COPY server/env-server.yml ./

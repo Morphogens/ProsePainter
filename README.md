@@ -42,5 +42,5 @@ docker build . -t prosepainter:latest
 ### Run python server with docker
 
 ```
-docker run -p 80:8004 prosepainter:latest
+docker run -p 8004:80 prosepainter:latest
 ```

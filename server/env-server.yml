@@ -16,5 +16,9 @@ dependencies:
     - aiofiles==0.7.0
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
-    - geniverse
-    - matplotlib  # required by geniverse
+    - geniverse==0.0.6
+    # following required by geniverse
+    - matplotlib
+    - flax
+    - jaxlib
+    - jax
