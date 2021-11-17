@@ -25,7 +25,7 @@
         on:click={() => (maskCanvas.erasing = false)}
         class:selected={!maskCanvas.erasing}
     >
-        <img src="/pencil.svg" alt="draw-mask" />
+        <img src="/images/pencil.svg" alt="draw-mask" />
     </button>
     <button
         on:click={() => (maskCanvas.erasing = true)}
