@@ -1,7 +1,8 @@
 import { writable, readable, get } from 'svelte/store'
 
 const host = window.location.hostname;
-const port = window.location.host.endsWith(":8003") ? ":8004" : "";
+const hasPort = window.location.host.endsWith(":8003") || window.location.host.endsWith(":8004");
+const port = hasPort ? ":8004" : "";
 const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
 const serverURL = `${proto}//${host}${port}/ws`;
 
