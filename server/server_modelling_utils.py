@@ -118,11 +118,9 @@ def scale_crop_tensor(crop_tensor: torch.Tensor, ) -> torch.Tensor:
 
         crop_size = tuple(np.asarray(crop_size) / scale_factor)
 
-
     # NOTE: scale to the nearest multiples of 16
     crop_size = tuple(np.int32(np.ceil(crop_size) / 16) * 16)
     logger.debug(f"SCALED CROP SIZE: {crop_size}")
-
 
     crop_tensor = torch.nn.functional.interpolate(
         crop_tensor,
@@ -139,7 +137,7 @@ def merge_gen_img_into_canvas(
     mask: Union[torch.Tensor, np.ndarray, ],
     canvas_img: np.ndarray,
     crop_limits: Tuple,
-):
+) -> torch.Tensor:
     """
     Merge generated image into the canvas.
 
@@ -150,7 +148,7 @@ def merge_gen_img_into_canvas(
         crop_limits (Tuple): limits in the following order: min_h, max_h, min_w, max_w.
 
     Returns:
-        [type]: [description]
+        torch.Tensor: canvas with the generated image merged into it in the area represented in the mask.
     """
     if not torch.is_tensor(gen_img):
         gen_img = torch.tensor(gen_img[None, :]).permute(0, 3, 1, 2)
@@ -201,32 +199,45 @@ def merge_gen_img_into_canvas(
     return canvas_img
 
 
-
-def get_confirm_token(response):
+def _get_confirm_token(response, ):
+    """"""
     for key, value in response.cookies.items():
         if key.startswith('download_warning'):
             return value
 
     return None
 
-def save_response_content(response, destination):
+
+def _save_response_content(response, destination):
+    """"""
     CHUNK_SIZE = 32768
 
     with open(destination, "wb") as f:
         for chunk in response.iter_content(CHUNK_SIZE):
-            if chunk: # filter out keep-alive new chunks
+            if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
 
-def download_file_from_google_drive(id, destination):
+
+def download_file_from_google_drive(
+    google_drive_id: str,
+    out_dir: str,
+) -> None:
+    """
+    Download content from google drive with the provided google_drive_id in the selected out_dir.
+
+    Args:
+        google_drive_id (str): id of the file stored in google drive.
+        out_dir (str): directory where the downloaded file will be stored.
+    """
     URL = "https://docs.google.com/uc?export=download"
 
     session = requests.Session()
 
-    response = session.get(URL, params = { 'id' : id }, stream = True)
-    token = get_confirm_token(response)
+    response = session.get(URL, params={'id': google_drive_id}, stream=True)
+    token = _get_confirm_token(response)
 
     if token:
-        params = { 'id' : id, 'confirm' : token }
-        response = session.get(URL, params = params, stream = True)
+        params = {'id': google_drive_id, 'confirm': token}
+        response = session.get(URL, params=params, stream=True)
 
-    save_response_content(response, destination)    
+    _save_response_content(response, out_dir)

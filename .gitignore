@@ -145,4 +145,5 @@ cython_debug/
 .DS_Store
 
 generations
+test-generations
 .vscode
