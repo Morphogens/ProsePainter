@@ -13,6 +13,12 @@ dependencies:
   - pip=21.0.1
   - pip:
     - fastapi==0.68.1
+    - aiofiles==0.7.0
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
     - geniverse==0.0.6
+    # following required by geniverse
+    - matplotlib
+    - flax
+    - jaxlib
+    - jax

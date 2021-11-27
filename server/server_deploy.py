@@ -9,6 +9,8 @@ import torchvision
 import uvicorn
 import numpy as np
 from fastapi import WebSocket
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from loguru import logger
 from PIL import Image
 
@@ -398,6 +400,26 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     return
 
+@app.get("/health")
+async def index():
+    return "ok"
+
+STATIC_FOLDERS = [
+    "images", # public images from public folder
+    "assets"  # Built assets from vite
+]
+
+# Add static path if configured
+if os.environ.get("STATIC_PATH"):
+    static_root = os.environ["STATIC_PATH"]
+    for static_folder in STATIC_FOLDERS:
+        static_path = f"{static_root}/{static_folder}"
+        app.mount(f"/{static_folder}", StaticFiles(directory=static_path), name=static_folder)
+    
+    @app.get("/")
+    async def index():
+        return FileResponse(f"{static_root}/index.html")
+
 
 def main():
     """
@@ -409,7 +431,7 @@ def main():
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8004,
+        port=int(os.environ.get("PORT", 8004)),
         loop=loop,
     )
 
