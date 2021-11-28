@@ -11,26 +11,46 @@ COPY client ./
 
 RUN npm run build
 
-FROM continuumio/miniconda3
+# Use nvidia/cuda image
+# https://stackoverflow.com/questions/65492490/how-to-install-cuda-enabled-pytorch-in-a-docker-container
+FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu16.04
 
-# Fix for https://github.com/lhelontra/tensorflow-on-arm/issues/13
-RUN apt-get -qq update \
-  && apt-get install -qqy gpg software-properties-common \
-  && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 1E9377A2BA9EF27F \
-  && add-apt-repository ppa:ubuntu-toolchain-r/test \
-  && apt-get -qq update \
-  && apt-get -qqy upgrade
+# set bash as current shell
+RUN chsh -s /bin/bash
+SHELL ["/bin/bash", "-c"]
+
+# Install anaconda
+RUN apt-get update \
+  && apt-get install -y wget bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion \
+  && apt-get clean
+
+RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_64.sh -O ~/anaconda.sh \
+  && /bin/bash ~/anaconda.sh -b -p /opt/conda \
+  && rm ~/anaconda.sh \
+  && ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh \
+  && echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc \
+  && find /opt/conda/ -follow -type f -name '*.a' -delete \
+  && find /opt/conda/ -follow -type f -name '*.js.map' -delete \
+  && /opt/conda/bin/conda clean -afy
+
+# set path to conda
+ENV PATH /opt/conda/bin:$PATH
 
 WORKDIR /server
 
 COPY server/env-server.yml ./
 
-RUN conda env create -q -f ./env-server.yml \
+RUN conda update conda \
+  && conda env create -q -f ./env-server.yml \
   # Steps to reduce docker image size from https://jcristharif.com/conda-docker-tips.html
   && conda clean -afy \
   && find /opt/conda/ -follow -type f -name '*.a' -delete \
   && find /opt/conda/ -follow -type f -name '*.pyc' -delete \
   && find /opt/conda/ -follow -type f -name '*.js.map' -delete
+
+RUN echo "conda activate prosepaint" >> ~/.bashrc
+ENV PATH /opt/conda/envs/prosepaint/bin:$PATH
+ENV CONDA_DEFAULT_ENV prosepaint
 
 ENV MODELING_DIR=/opt/conda/envs/prosepaint/lib/python3.7/site-packages/geniverse/models
 
