@@ -13,7 +13,7 @@ RUN npm run build
 
 # Use nvidia/cuda image
 # https://stackoverflow.com/questions/65492490/how-to-install-cuda-enabled-pytorch-in-a-docker-container
-FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu16.04
+FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04
 
 # set bash as current shell
 RUN chsh -s /bin/bash
