@@ -43,7 +43,9 @@ RUN mkdir -p $MODELING_DIR/taming/.modeling_cache \
   && wget -q -O /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth https://download.pytorch.org/models/vgg16-397923af.pth \
   # CLIP from https://github.com/thegeniverse/geniverse/blob/main/geniverse/modeling_utils.py
   && mkdir -p /root/.cache/clip \
-  && wget -q -O /root/.cache/clip/ViT-B-32.pt https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt
+  && wget -q -O /root/.cache/clip/ViT-B-32.pt https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt \
+  # VGG LPIPS from https://github.com/CompVis/taming-transformers/blob/master/taming/modules/losses/lpips.py
+  && wget -q -O https://heibox.uni-heidelberg.de/f/607503859c864bc1b30b/?dl=1 $MODELING_DIR/taming/.modeling_cache/vgg.pth
 
 COPY server ./
 
