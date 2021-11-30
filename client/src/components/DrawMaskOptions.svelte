@@ -88,9 +88,5 @@
     button {
         width: 100px;
     }
-    p {
-        text-align: center;
-        margin-bottom: 2px;
-        margin-top: 6px;
-    }
+
 </style>
