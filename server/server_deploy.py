@@ -9,6 +9,8 @@ import torchvision
 import uvicorn
 import numpy as np
 from fastapi import WebSocket
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from loguru import logger
 from PIL import Image
 
@@ -40,17 +42,22 @@ class AsyncManager:
     def set_async_value(
         self,
         async_value: Any,
-    ):
+    ) -> None:
         """
-        Add value to the async loop.
+        Set async value and send event to the event loop.
 
         Args:
             async_value (Any): value to set on the async loop.
+
         """
         self.async_value = async_value
         self.async_event_loop.set()
 
-    async def wait(self):
+    async def wait(self) -> None:
+        """
+        Waits until the event loop receives an event.
+
+        """
         logger.info(f"AWAITING ASYNC DATA...")
         await self.async_event_loop.wait()
 
@@ -84,8 +91,10 @@ class UserSession:
 
         self.async_manager = AsyncManager()
 
-
-    async def run(self):
+    async def run(self, ) -> None:
+        """
+        Launch listen and send async processes.
+        """
         await asyncio.wait(
             [
                 self.listen_loop(),
@@ -114,7 +123,8 @@ class UserSession:
             mask (str): base64 encoded mask determining the region to optimize in the canvas.
             lr (float, optional): learning rate. Defaults to 0.5.
             style_prompt (str, optional): prompt describing the style of the optimization. Defaults to "".
-            padding_percent (float, optional): percent of external context to take into account in each generation. Defaults to 5..
+            padding_percent (float, optional): percent of external context to take into account in each generation. Defaults to 0.5.
+            num_rec_steps (int, optional): Number of reconstruction steps. Defaults to 16.
 
         """
         canvas_img = base64_to_pil(canvas_img)
@@ -175,9 +185,9 @@ class UserSession:
                 lr=lr,
                 style_prompt=style_prompt,
             )
-        
-        self.mask_optimizer.optimize_reconstruction(num_iters=num_rec_steps,)
 
+            self.mask_optimizer.optimize_reconstruction(
+                num_iters=num_rec_steps, )
 
         gen_img = None
         optim_step = 0
@@ -186,8 +196,6 @@ class UserSession:
                 break
 
             gen_img = self.mask_optimizer.optimize()
-
-            
 
             updated_canvas = merge_gen_img_into_canvas(
                 gen_img,
@@ -231,11 +239,19 @@ class UserSession:
         self,
         canvas_img: str,
         mask: str,
-        padding_percent:int = 0,
+        padding_percent: int = 0,
         **kwargs,
-    ):
+    ) -> None:
+        """
+        Applies superresolution (using ESRGAN) to the area specified by the mask within the canvas and sends the result to the client using websockets.
+
+        Args:
+            canvas_img (str): canvas image where we want to apply superresolution.
+            mask (str): mask of the canvas where superresolution is applied
+            padding_percent (int, optional): percentage of padding used when computing the crop. Defaults to 0.
+        """
         esrgan = ESRGAN()
-        
+
         canvas_img = base64_to_pil(canvas_img)
         canvas_img = np.float32(canvas_img.convert("RGB")) / 255.
 
@@ -250,7 +266,7 @@ class UserSession:
             mask,
             target_img_size,
         )
-        
+
         crop_limits = get_limits_from_mask(
             mask,
             padding_percent,
@@ -268,25 +284,28 @@ class UserSession:
         )
         mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        num_chunks = int(np.ceil((img_height * img_width) / 256**2))
-        upscaled_crop = esrgan.upscale_img(img_crop_tensor*mask_crop_tensor, num_chunks,)
-        
+        _b, _ch, crop_height, crop_width = img_crop_tensor.shape
+
+        num_chunks = int(np.ceil((crop_height * crop_width) / 256**2))
+        upscaled_crop = esrgan.upscale_img(
+            img_crop_tensor,
+            num_chunks,
+        )
+
         updated_canvas = merge_gen_img_into_canvas(
             upscaled_crop,
             mask_crop_tensor,
             canvas_img,
             crop_limits,
         )
-            
-        updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas *
-                                                        255))
+
+        updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas * 255))
         updated_canvas_uri = pil_to_base64(updated_canvas_pil)
 
         self.async_manager.set_async_value({
             "user_id": self.user_id,
             "image": updated_canvas_uri,
         })
-
 
     async def listen_loop(self, ):
         """
@@ -304,7 +323,7 @@ class UserSession:
                 if topic == "initialize":
                     self.initialize = True
 
-                if topic=="upscale-generation":
+                if topic == "upscale-generation":
                     print(data_dict)
                     optimize_kwargs = {
                         "canvas_img": data_dict["backgroundImg"],
@@ -341,7 +360,6 @@ class UserSession:
 
                 elif topic == "stop-generation":
                     self.stop_generation = True
-
 
         except Exception as e:
             logger.exception("Error", e)
@@ -382,6 +400,26 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     return
 
+@app.get("/health")
+async def index():
+    return "ok"
+
+STATIC_FOLDERS = [
+    "images", # public images from public folder
+    "assets"  # Built assets from vite
+]
+
+# Add static path if configured
+if os.environ.get("STATIC_PATH"):
+    static_root = os.environ["STATIC_PATH"]
+    for static_folder in STATIC_FOLDERS:
+        static_path = f"{static_root}/{static_folder}"
+        app.mount(f"/{static_folder}", StaticFiles(directory=static_path), name=static_folder)
+    
+    @app.get("/")
+    async def index():
+        return FileResponse(f"{static_root}/index.html")
+
 
 def main():
     """
@@ -393,7 +431,7 @@ def main():
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8004,
+        port=int(os.environ.get("PORT", 8004)),
         loop=loop,
     )
 
