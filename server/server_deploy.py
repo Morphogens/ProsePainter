@@ -13,8 +13,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from loguru import logger
 from PIL import Image
+from upscaler.models import ESRGAN, ESRGANConfig
 
-from server.server_modelling import MaskOptimizer, ESRGAN
+from server.server_modelling import MaskOptimizer
 from server.server_modelling_utils import (
     process_mask,
     get_limits_from_mask,
@@ -250,7 +251,9 @@ class UserSession:
             mask (str): mask of the canvas where superresolution is applied
             padding_percent (int, optional): percentage of padding used when computing the crop. Defaults to 0.
         """
-        esrgan = ESRGAN()
+
+        esrgan_config = ESRGANConfig()
+        esrgan = ESRGAN(esrgan_config)
 
         canvas_img = base64_to_pil(canvas_img)
         canvas_img = np.float32(canvas_img.convert("RGB")) / 255.
@@ -287,10 +290,8 @@ class UserSession:
         _b, _ch, crop_height, crop_width = img_crop_tensor.shape
 
         num_chunks = int(np.ceil((crop_height * crop_width) / 256**2))
-        upscaled_crop = esrgan.upscale_img(
-            img_crop_tensor,
-            num_chunks,
-        )
+
+        upscaled_crop = esrgan.upscale(img_crop_tensor)
 
         updated_canvas = merge_gen_img_into_canvas(
             upscaled_crop,
@@ -400,12 +401,14 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     return
 
+
 @app.get("/health")
 async def index():
     return "ok"
 
+
 STATIC_FOLDERS = [
-    "images", # public images from public folder
+    "images",  # public images from public folder
     "assets"  # Built assets from vite
 ]
 
@@ -414,8 +417,10 @@ if os.environ.get("STATIC_PATH"):
     static_root = os.environ["STATIC_PATH"]
     for static_folder in STATIC_FOLDERS:
         static_path = f"{static_root}/{static_folder}"
-        app.mount(f"/{static_folder}", StaticFiles(directory=static_path), name=static_folder)
-    
+        app.mount(f"/{static_folder}",
+                  StaticFiles(directory=static_path),
+                  name=static_folder)
+
     @app.get("/")
     async def index():
         return FileResponse(f"{static_root}/index.html")
