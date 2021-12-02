@@ -5,14 +5,19 @@
     import { Mode } from "../types";
     import DrawMaskOptions from "./DrawMaskOptions.svelte";
     import DrawDirectOptions from "./DrawDirectOptions.svelte";
+import SetImageOptions from "./SetImageOptions.svelte";
     export let maskCanvas: DrawCanvas;
     export let mainCanvas: DrawCanvas;
     $: console.log('mode=', $mode);
     
 </script>
 
-{#if $mode == Mode.MaskDraw || $mode == Mode.DirectDraw}
+{#if $mode != Mode.Optimizing && $mode != Mode.PausedOptimizing}
     <div id="modeToggle">
+        <button
+            class:selected={$mode == Mode.SetImage}
+            on:click={(e) => ($mode = Mode.SetImage)}><p>Set Image</p></button
+        >
         <button
             class:selected={$mode == Mode.DirectDraw}
             on:click={(e) => ($mode = Mode.DirectDraw)}><p>Draw</p></button
@@ -24,6 +29,7 @@
     </div>
 {/if}
 <div id="optionPanel">
+    <SetImageOptions {mainCanvas} />
     <DrawMaskOptions {maskCanvas} />
     <DrawDirectOptions {mainCanvas} />
 
@@ -90,5 +96,11 @@
         width: 8px;
         height: 100px;
         padding: 0 5px;
+    }
+    :global(#optionPanel p ) {
+        text-align: center;
+        /* margin-bottom: 2px; */
+        margin:4px;
+        margin-top: 8px;
     }
 </style>
