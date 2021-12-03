@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
                 mask_optimizer = MaskOptimizer(
                     prompt=prompt,
-                    cond_img=img_crop_tensor.detach.clone(),
+                    cond_img=img_crop_tensor.detach().clone(),
                     mask=mask_crop_tensor,
                     lr=lr,
                     style_prompt=style_prompt,
