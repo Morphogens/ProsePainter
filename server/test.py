@@ -140,7 +140,7 @@ if __name__ == "__main__":
                             f"{counter:04d}_canvas_{'_'.join(prompt.split())}_{optim_step:03d}.jpg"
                         ))
 
-                    canvas_img = updated_canvas
+                    canvas_img = updated_canvas.detach().clone()
 
                     counter += 1
 
