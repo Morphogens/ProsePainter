@@ -35,7 +35,7 @@ if __name__ == "__main__":
     style_prompt = "japanese painting"
     prompt_list = [
         "Roses in the sea",
-        "The Great Wave off Kanagawa",
+        "The Great Wave of Kanagawa",
         "A small village near the sea",
     ]
     prompt_list = [prompt + " " + style_prompt for prompt in prompt_list]
