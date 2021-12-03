@@ -1,7 +1,7 @@
 import copy
 import os
+import gc
 import subprocess
-from server.server_config import CLIP_MODEL_NAME_LIST
 from typing import *
 
 import torch
@@ -17,6 +17,7 @@ from server.server_modelling_utils import (
     scale_crop_tensor,
     merge_gen_img_into_canvas,
 )
+from server.server_config import CLIP_MODEL_NAME_LIST
 
 if __name__ == "__main__":
     lr_list = [0.1, 0.25, 0.5]
@@ -144,6 +145,7 @@ if __name__ == "__main__":
                     counter += 1
 
                     torch.cuda.empty_cache()
+                    gc.collect()
 
                 # img_crop_tensor = get_crop_tensor_from_img(
                 #     updated_canvas,
