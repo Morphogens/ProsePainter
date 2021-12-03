@@ -16,6 +16,5 @@ dependencies:
     - aiofiles==0.7.0
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
-    - aiofiles==0.8.0
     - upscaler==0.0.5
     - geniverse==0.0.12
