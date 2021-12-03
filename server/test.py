@@ -5,7 +5,7 @@ import numpy as np
 import torchvision
 from PIL import Image
 
-from server.server_modelling import MaskOptimizer, ESRGAN
+from server.server_modelling import MaskOptimizer
 from server.server_modelling_utils import (
     process_mask,
     get_limits_from_mask,
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     num_rec_steps = 16
     num_generations = 16
 
-    esrgan = ESRGAN()
+    # esrgan = ESRGAN()
     num_chunks = 1
 
     mask_list = [
@@ -50,6 +50,7 @@ if __name__ == "__main__":
         img_height,
     )
 
+    counter = 0
     for prompt, mask in zip(prompt_list, mask_list):
         mask.save(os.path.join(out_dir,
                                f"{'_'.join(prompt.split())}_mask.png"))
@@ -59,9 +60,11 @@ if __name__ == "__main__":
             target_img_size,
         )
 
-        Image.fromarray(np.uint8(mask * 255)).save(
-            os.path.join(out_dir,
-                         f"{'_'.join(prompt.split())}_processed_mask.jpg"))
+        # Image.fromarray(np.uint8(mask * 255)).save(
+        #     os.path.join(
+        #         out_dir,
+        #         f"{counter:03d}_{'_'.join(prompt.split())}_processed_mask.jpg")
+        # )
 
         crop_limits = get_limits_from_mask(
             mask,
@@ -94,9 +97,10 @@ if __name__ == "__main__":
             mask_optimizer.gen_latents, )
 
         rec_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(rec_img[0])
-        rec_img_pil.save(
-            os.path.join(out_dir,
-                         f"rec_canvas_{'_'.join(prompt.split())}.jpg"))
+        # rec_img_pil.save(
+        #     os.path.join(
+        #         out_dir,
+        #         f"{counter:03d}_rec_canvas_{'_'.join(prompt.split())}.jpg"))
 
         gen_img = None
         optim_step = 0
@@ -114,37 +118,41 @@ if __name__ == "__main__":
                                                           255))
             gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
                 gen_img[0])
-            gen_img_pil.save(
-                os.path.join(out_dir,
-                             f"{'_'.join(prompt.split())}_{optim_step}.jpg"))
+            # gen_img_pil.save(
+            #     os.path.join(
+            #         out_dir,
+            #         f"{'_'.join(prompt.split())}_{optim_step:03d}.jpg"))
 
             updated_canvas_pil.save(
                 os.path.join(
                     out_dir,
-                    f"canvas_{'_'.join(prompt.split())}_{optim_step}.jpg"))
+                    f"{counter:03d}_canvas_{'_'.join(prompt.split())}_{optim_step:03d}.jpg"
+                ))
 
             canvas_img = updated_canvas
 
-        img_crop_tensor = get_crop_tensor_from_img(
-            updated_canvas,
-            crop_limits,
-        )
-        img_crop_tensor = scale_crop_tensor(img_crop_tensor)
-        upscaled_crop = esrgan.upscale_img(
-            img_crop_tensor,
-            num_chunks,
-        )
+            counter += 1
 
-        updated_canvas = merge_gen_img_into_canvas(
-            upscaled_crop,
-            mask_crop_tensor,
-            canvas_img,
-            crop_limits,
-        )
+        # img_crop_tensor = get_crop_tensor_from_img(
+        #     updated_canvas,
+        #     crop_limits,
+        # )
+        # img_crop_tensor = scale_crop_tensor(img_crop_tensor)
+        # img_crop_tensor = esrgan.upscale_img(
+        #     img_crop_tensor,
+        #     num_chunks,
+        # )
 
-        updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas * 255))
-        updated_canvas_pil.save(
-            os.path.join(
-                out_dir,
-                f"upscaled_canvas_{'_'.join(prompt.split())}_{optim_step}.jpg")
-        )
+        # updated_canvas = merge_gen_img_into_canvas(
+        #     img_crop_tensor,
+        #     mask_crop_tensor,
+        #     canvas_img,
+        #     crop_limits,
+        # )
+
+        # updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas * 255))
+        # updated_canvas_pil.save(
+        #     os.path.join(
+        #         out_dir,
+        #         f"upscaled_canvas_{'_'.join(prompt.split())}_{optim_step}.jpg")
+        # )
