@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
                 mask_optimizer = MaskOptimizer(
                     prompt=prompt,
-                    cond_img=img_crop_tensor.detach().clone(),
+                    cond_img=img_crop_tensor,
                     mask=mask_crop_tensor,
                     lr=lr,
                     style_prompt=style_prompt,
@@ -103,14 +103,11 @@ if __name__ == "__main__":
                 mask_optimizer.optimize_reconstruction(
                     num_iters=num_rec_steps, )
 
-                torch.cuda.empty_cache()
-                gc.collect()
+                # rec_img = mask_optimizer.model.get_img_from_latents(
+                #     mask_optimizer.gen_latents, )
 
-                rec_img = mask_optimizer.model.get_img_from_latents(
-                    mask_optimizer.gen_latents, )
-
-                rec_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
-                    rec_img[0])
+                # rec_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
+                #     rec_img[0])
                 # rec_img_pil.save(
                 #     os.path.join(
                 #         out_dir,
@@ -146,9 +143,6 @@ if __name__ == "__main__":
                     canvas_img = updated_canvas
 
                     counter += 1
-
-                    torch.cuda.empty_cache()
-                    gc.collect()
 
                 # img_crop_tensor = get_crop_tensor_from_img(
                 #     updated_canvas,

@@ -1,3 +1,4 @@
+import gc
 import os
 from typing import *
 
@@ -177,6 +178,9 @@ class MaskOptimizer:
             loss.backward(retain_graph=False, )
             self.rec_optimizer.step()
 
+        torch.cuda.empty_cache()
+        gc.collect()
+
         return
 
     def optimize(self, ) -> torch.Tensor:
@@ -254,5 +258,8 @@ class MaskOptimizer:
             mode='bilinear',
             align_corners=True,
         )
+
+        torch.cuda.empty_cache()
+        gc.collect()
 
         return gen_img
