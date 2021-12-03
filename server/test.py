@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
                 mask_optimizer = MaskOptimizer(
                     prompt=prompt,
-                    cond_img=img_crop_tensor,
+                    cond_img=img_crop_tensor.detach.clone(),
                     mask=mask_crop_tensor,
                     lr=lr,
                     style_prompt=style_prompt,
@@ -140,7 +140,7 @@ if __name__ == "__main__":
                             f"{counter:04d}_canvas_{'_'.join(prompt.split())}_{optim_step:03d}.jpg"
                         ))
 
-                    canvas_img = updated_canvas.detatch().clone()
+                    canvas_img = updated_canvas
 
                     counter += 1
 
