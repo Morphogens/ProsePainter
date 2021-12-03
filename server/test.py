@@ -103,6 +103,9 @@ if __name__ == "__main__":
                 mask_optimizer.optimize_reconstruction(
                     num_iters=num_rec_steps, )
 
+                torch.cuda.empty_cache()
+                gc.collect()
+
                 rec_img = mask_optimizer.model.get_img_from_latents(
                     mask_optimizer.gen_latents, )
 
