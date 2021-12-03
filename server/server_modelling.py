@@ -8,7 +8,7 @@ from geniverse.models import TamingDecoder, Aphantasia
 from loguru import logger
 from upscaler.models import ESRGAN, ESRGANConfig
 
-from server.server_config import MODEL_NAME, DEBUG, DEBUG_OUT_DIR
+from server.server_config import MODEL_NAME, DEBUG, DEBUG_OUT_DIR, CLIP_MODEL_NAME_LIST
 
 torch.manual_seed(123)
 
@@ -46,7 +46,8 @@ class ModelFactory:
         if model_name == "taming":
             if self.taming_decoder is None:
                 logger.info("SETTING UP TAMING...")
-                self.taming_decoder = TamingDecoder()
+                self.taming_decoder = TamingDecoder(
+                    clip_model_name_list=CLIP_MODEL_NAME_LIST, )
                 self.taming_decoder.eval()
 
             model = self.taming_decoder
@@ -54,7 +55,8 @@ class ModelFactory:
         elif model_name == "aphantasia":
             if self.aphantasia is None:
                 logger.info("SETTING UP APHANTASIA...")
-                self.aphantasia = Aphantasia()
+                self.aphantasia = Aphantasia(
+                    clip_model_name_list=CLIP_MODEL_NAME_LIST, )
                 self.aphantasia.eval()
 
             model = self.aphantasia
