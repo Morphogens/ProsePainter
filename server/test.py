@@ -4,8 +4,9 @@ import subprocess
 from server.server_config import CLIP_MODEL_NAME_LIST
 from typing import *
 
-import numpy as np
+import torch
 import torchvision
+import numpy as np
 from PIL import Image
 
 from server.server_modelling import MaskOptimizer
@@ -141,6 +142,8 @@ if __name__ == "__main__":
                     canvas_img = updated_canvas
 
                     counter += 1
+
+                    torch.cuda.empty_cache()
 
                 # img_crop_tensor = get_crop_tensor_from_img(
                 #     updated_canvas,
