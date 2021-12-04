@@ -137,8 +137,7 @@ def optimize(
         updated_canvas_pil.save(
             os.path.join(
                 out_dir,
-                f"{step:04d}_canvas_{'_'.join(prompt.split())}_{optim_step:03d}.jpg"
-            ))
+                f"{step:04d}_{'_'.join(prompt.split())}_{optim_step:03d}.jpg"))
 
     return updated_canvas
 
@@ -193,20 +192,26 @@ if __name__ == "__main__":
                     counter = 0
                     for prompt, mask in zip(prompt_list, mask_list):
                         prompt = f"{prompt} {style_prompt}"
-                        updated_canvas = optimize(
-                            canvas_img=canvas_img,
-                            mask=mask,
-                            target_img_size=target_img_size,
-                            clip_model_name_list=clip_model_name_list,
-                            lr=lr,
-                            num_generations=num_generations,
-                            num_rec_steps=num_rec_steps,
-                            padding_percent=padding_percent,
-                            style_prompt=style_prompt,
-                            step=counter,
-                            out_dir=out_dir,
-                        )
-                        canvas_img = updated_canvas
+                        try:
+                            updated_canvas = optimize(
+                                canvas_img=canvas_img,
+                                mask=mask,
+                                target_img_size=target_img_size,
+                                clip_model_name_list=clip_model_name_list,
+                                lr=lr,
+                                num_generations=num_generations,
+                                num_rec_steps=num_rec_steps,
+                                padding_percent=padding_percent,
+                                style_prompt=style_prompt,
+                                step=counter,
+                                out_dir=out_dir,
+                            )
+                            canvas_img = updated_canvas
+                        except:
+                            print(
+                                "FAILEDDD!",
+                                f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}"
+                            )
 
                         counter += 1
 
@@ -227,26 +232,29 @@ if __name__ == "__main__":
                 #     crop_limits,
                 # )
 
-                canvas_img = copy.deepcopy(original_canvas_img)
+                try:
+                    canvas_img = copy.deepcopy(original_canvas_img)
 
-                fps = 8
+                    fps = 8
 
-                cmd = (
-                    "ffmpeg -y "
-                    "-r 16 "
-                    f"-pattern_type glob -i '{out_dir}/0*.jpg' "
-                    "-vcodec libx264 "
-                    f"-crf {fps} "
-                    "-pix_fmt yuv420p "
-                    f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.mp4; "
-                    f"rm -r {out_dir}/0*.jpg;")
+                    cmd = (
+                        "ffmpeg -y "
+                        "-r 16 "
+                        f"-pattern_type glob -i '{out_dir}/0*.jpg' "
+                        "-vcodec libx264 "
+                        f"-crf {fps} "
+                        "-pix_fmt yuv420p "
+                        f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.mp4; "
+                        f"rm -r {out_dir}/0*.jpg;")
 
-                subprocess.check_call(cmd, shell=True)
+                    subprocess.check_call(cmd, shell=True)
 
-                updated_canvas_pil = Image.fromarray(
-                    np.uint8(updated_canvas * 255))
-                updated_canvas_pil.save(
-                    os.path.join(
-                        out_dir,
-                        f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.jpg"
-                    ))
+                    updated_canvas_pil = Image.fromarray(
+                        np.uint8(updated_canvas * 255))
+                    updated_canvas_pil.save(
+                        os.path.join(
+                            out_dir,
+                            f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.jpg"
+                        ))
+                except:
+                    print("SAVING FAILED")
