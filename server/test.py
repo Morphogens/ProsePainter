@@ -161,7 +161,8 @@ if __name__ == "__main__":
 
     mask_path_list = glob.glob(os.path.join(img_dir, "mask-*"))
     mask_info_list = [
-        tuple(mask_path.split("-")) for mask_path in mask_path_list
+        tuple(mask_path.split("/")[-1].split("-"))
+        for mask_path in mask_path_list
     ]
     mask_info_list.sort(key=lambda x: x[1])
     prompt_list = [
@@ -169,7 +170,8 @@ if __name__ == "__main__":
         for mask_info in mask_info_list
     ]
     mask_list = [
-        Image.open('-'.join(mask_info)) for mask_info in mask_info_list
+        Image.open(os.path.join(img_dir, '-'.join(mask_info)))
+        for mask_info in mask_info_list
     ]
 
     canvas_img_path = glob.glob(os.path.join(img_dir, "canvas*"))[0]
