@@ -33,12 +33,15 @@ RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_6
   && find /opt/conda/ -follow -type f -name '*.js.map' -delete \
   && /opt/conda/bin/conda clean -afy
 
-# set path to conda
+# Set path to conda
 ENV PATH /opt/conda/bin:$PATH
 
 WORKDIR /server
 
 COPY server/env-server.yml ./
+
+# Install scipy deps
+RUN apt-get install -y gcc-8 g++-8
 
 RUN conda update conda \
   && conda env create -q -f ./env-server.yml \
