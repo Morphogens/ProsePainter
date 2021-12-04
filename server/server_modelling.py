@@ -32,6 +32,8 @@ class ModelFactory:
     def load_model(
         self,
         model_name: str,
+        model_params_dict: Dict = None,
+        recompute: bool = False,
     ) -> torch.nn.Module:
         """
         Load a model and store it to its respective class instance.
@@ -45,27 +47,28 @@ class ModelFactory:
         logger.debug(f"LOADING {model_name}...")
 
         if model_name == "taming":
-            if self.taming_decoder is None:
+            if self.taming_decoder is None or recompute:
                 logger.info("SETTING UP TAMING...")
-                self.taming_decoder = TamingDecoder(
-                    clip_model_name_list=CLIP_MODEL_NAME_LIST, )
+                self.taming_decoder = TamingDecoder(**model_params_dict, )
                 self.taming_decoder.eval()
 
             model = self.taming_decoder
 
         elif model_name == "aphantasia":
-            if self.aphantasia is None:
+            if self.aphantasia is None or recompute:
                 logger.info("SETTING UP APHANTASIA...")
-                self.aphantasia = Aphantasia(
-                    clip_model_name_list=CLIP_MODEL_NAME_LIST, )
+                self.aphantasia = Aphantasia(**model_params_dict, )
                 self.aphantasia.eval()
 
             model = self.aphantasia
 
         if model_name == "esrgan":
-            if self.esrgan is None:
+            if self.esrgan is None or recompute:
                 esrgan_config = ESRGANConfig()
-                self.esrgan = ESRGAN(esrgan_config)
+                self.esrgan = ESRGAN(
+                    esrgan_config,
+                    **model_params_dict,
+                )
 
             model = self.esrgan
 
@@ -89,6 +92,9 @@ class MaskOptimizer:
         lr: float,
         rec_lr: float = 0.1,
         style_prompt: str = "",
+        model_name: str = None,
+        model_params_dict: Dict = {},
+        recompute_model: bool = False,
         **kwargs,
     ) -> None:
         """
@@ -107,7 +113,14 @@ class MaskOptimizer:
 
         self.layer_size = mask.shape[2::]
 
-        self.model = model_factory.load_model(MODEL_NAME)
+        if model_name is None:
+            model_name = MODEL_NAME
+
+        self.model = model_factory.load_model(
+            model_name,
+            recompute=recompute_model,
+            model_params_dict=model_params_dict,
+        )
 
         text_latents_list = self.model.get_clip_text_encodings(prompt, )
         text_latents_list = [
