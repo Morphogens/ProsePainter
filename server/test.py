@@ -58,6 +58,7 @@ def optimize(
     padding_percent,
     style_prompt,
     step,
+    out_dir,
 ):
     # mask.save(
     #     os.path.join(out_dir, f"0_{'_'.join(prompt.split())}_mask.png"))
@@ -139,7 +140,7 @@ def optimize(
                 f"{step:04d}_canvas_{'_'.join(prompt.split())}_{optim_step:03d}.jpg"
             ))
 
-        return updated_canvas
+    return updated_canvas
 
 
 if __name__ == "__main__":
@@ -199,6 +200,7 @@ if __name__ == "__main__":
                             padding_percent=padding_percent,
                             style_prompt=style_prompt,
                             step=counter,
+                            out_dir=out_dir,
                         )
                         canvas_img = updated_canvas
 
