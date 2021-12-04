@@ -11,6 +11,7 @@ dependencies:
   - imageio=2.9.0
   - python=3.7.9
   - pip=21.0.1
+  - scipy==1.7.3
   - pip:
     - fastapi==0.68.1
     - aiofiles==0.7.0
