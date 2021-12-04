@@ -18,7 +18,7 @@ from server.server_modelling_utils import (
     scale_crop_tensor,
     merge_gen_img_into_canvas,
 )
-from server.server_config import CLIP_MODEL_NAME_LIST, MODEL_NAME
+from server.server_config import MODEL_NAME
 
 
 def get_clip_model_name_list_combination(
@@ -231,7 +231,7 @@ if __name__ == "__main__":
                     "-vcodec libx264 "
                     f"-crf {fps} "
                     "-pix_fmt yuv420p "
-                    f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in CLIP_MODEL_NAME_LIST])}_lr_{lr}.mp4; "
+                    f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.mp4; "
                     f"rm -r {out_dir}/0*.jpg;")
 
                 subprocess.check_call(cmd, shell=True)
@@ -241,5 +241,5 @@ if __name__ == "__main__":
                 updated_canvas_pil.save(
                     os.path.join(
                         out_dir,
-                        f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in CLIP_MODEL_NAME_LIST])}_lr_{lr}.jpg"
+                        f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.jpg"
                     ))
