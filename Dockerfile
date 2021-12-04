@@ -41,7 +41,9 @@ WORKDIR /server
 COPY server/env-server.yml ./
 
 # Install scipy deps
-RUN apt-get install -y gcc-8 g++-8
+RUN apt-get update \
+  && apt-get install -y gcc-7 g++-7 \
+  && apt-get clean
 
 RUN conda update conda \
   && conda env create -q -f ./env-server.yml \
