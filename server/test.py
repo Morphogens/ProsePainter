@@ -160,14 +160,16 @@ if __name__ == "__main__":
     # num_chunks = 1
 
     mask_path_list = glob.glob(os.path.join(img_dir, "mask-*"))
-    mask_list = [Image.open(mask_path) for mask_path in mask_path_list]
-    prompt_tuple_list = [
-        tuple(mask_path.split("-")[1::]) for mask_path in mask_path_list
+    mask_info_list = [
+        tuple(mask_path.split("-")) for mask_path in mask_path_list
     ]
-    prompt_tuple_list.sort(key=lambda x: x[1])
+    mask_info_list.sort(key=lambda x: x[1])
     prompt_list = [
-        " ".join(prompt_tuple[2].split('.')[0].split("_"))
-        for prompt_tuple in prompt_tuple_list
+        " ".join(mask_info[2].split('.')[0].split("_"))
+        for mask_info in mask_info_list
+    ]
+    mask_list = [
+        Image.open('-'.join(mask_info)) for mask_info in mask_info_list
     ]
 
     canvas_img_path = glob.glob(os.path.join(img_dir, "canvas*"))[0]
