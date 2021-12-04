@@ -52,6 +52,7 @@ def optimize(
     mask,
     target_img_size,
     clip_model_name_list,
+    num_generations,
     lr,
     num_rec_steps,
     padding_percent,
@@ -115,7 +116,6 @@ def optimize(
     #         f"{counter:03d}_rec_canvas_{'_'.join(prompt.split())}.jpg"))
 
     gen_img = None
-    optim_step = 0
     for optim_step in range(num_generations):
         gen_img = mask_optimizer.optimize()
 
@@ -194,6 +194,7 @@ if __name__ == "__main__":
                             target_img_size=target_img_size,
                             clip_model_name_list=clip_model_name_list,
                             lr=lr,
+                            num_generations=num_generations,
                             num_rec_steps=num_rec_steps,
                             padding_percent=padding_percent,
                             style_prompt=style_prompt,
