@@ -228,26 +228,38 @@ if __name__ == "__main__":
 
                             fps = 8
 
-                            cmd = (
-                                "ffmpeg -y "
-                                "-r 16 "
-                                f"-pattern_type glob -i '{out_dir}/0*.jpg' "
-                                "-vcodec libx264 "
-                                f"-crf {fps} "
-                                "-pix_fmt yuv420p "
-                                "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
-                                f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}_{style_prompt}.mp4; "
-                                f"rm -r {out_dir}/0*.jpg;")
+                            clip_models_str = '-'.join([
+                                s.replace('/', '')
+                                for s in clip_model_name_list
+                            ])
+                            lr_str = str(lr).replace('.', ',')
+                            style_prompt_str = '-'.join(
+                                style_prompt.split(' '))
+
+                            out_filename = (f"using_{clip_models_str}"
+                                            f"_style_{style_prompt_str}"
+                                            f"_lr_{lr}"
+                                            f"_pad_{padding_percent}"
+                                            f"_{num_rec_steps}_rec_steps"
+                                            f"{num_generations}_generations")
+
+                            cmd = ("ffmpeg -y "
+                                   "-r 16 "
+                                   f"-pattern_type glob -i '{out_dir}/0*.jpg' "
+                                   "-vcodec libx264 "
+                                   f"-crf {fps} "
+                                   "-pix_fmt yuv420p "
+                                   "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
+                                   f"{out_dir}/{out_filename}.mp4; "
+                                   f"rm -r {out_dir}/0*.jpg;")
 
                             subprocess.check_call(cmd, shell=True)
 
                             updated_canvas_pil = Image.fromarray(
                                 np.uint8(updated_canvas * 255))
                             updated_canvas_pil.save(
-                                os.path.join(
-                                    out_dir,
-                                    f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}_{style_prompt}.jpg"
-                                ))
+                                os.path.join(out_dir,
+                                             f"{out_dir}/{out_filename}.jpg"))
 
                         except Exception as e:
                             logger.error("SAVING FAILED")
