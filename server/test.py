@@ -238,7 +238,7 @@ if __name__ == "__main__":
 
                             out_filename = (f"using_{clip_models_str}"
                                             f"_style_{style_prompt_str}"
-                                            f"_lr_{lr}"
+                                            f"_lr_{lr_str}"
                                             f"_pad_{padding_percent}"
                                             f"_{num_rec_steps}_rec_steps"
                                             f"{num_generations}_generations")
@@ -258,8 +258,7 @@ if __name__ == "__main__":
                             updated_canvas_pil = Image.fromarray(
                                 np.uint8(updated_canvas * 255))
                             updated_canvas_pil.save(
-                                os.path.join(out_dir,
-                                             f"{out_dir}/{out_filename}.jpg"))
+                                f"{out_dir}/{out_filename}.jpg")
 
                         except Exception as e:
                             logger.error("SAVING FAILED")
