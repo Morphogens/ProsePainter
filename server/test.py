@@ -246,7 +246,7 @@ if __name__ == "__main__":
                             updated_canvas_pil.save(
                                 os.path.join(
                                     out_dir,
-                                    f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.jpg"
+                                    f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}_{style_prompt}.jpg"
                                 ))
 
                         except Exception as e:
