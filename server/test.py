@@ -236,7 +236,7 @@ if __name__ == "__main__":
                                 f"-crf {fps} "
                                 "-pix_fmt yuv420p "
                                 "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
-                                f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.mp4; "
+                                f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}_{style_prompt}.mp4; "
                                 f"rm -r {out_dir}/0*.jpg;")
 
                             subprocess.check_call(cmd, shell=True)
