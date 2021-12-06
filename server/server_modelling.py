@@ -237,8 +237,7 @@ class MaskOptimizer:
             loss += (text_latents - img_latents).norm(
                 dim=-1).div(2).arcsin().pow(2).mul(2).mean()
 
-            if self.style_latents_list is not None:
-
+            if self.style_prompt != "":
                 style_latents = self.model.get_clip_text_encodings(
                     self.style_prompt, )[latents_idx]
                 loss += (style_latents - img_latents).norm(
