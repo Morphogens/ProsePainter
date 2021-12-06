@@ -43,10 +43,10 @@ def get_clip_model_name_list_combination(
 
 clip_model_name_lists = get_clip_model_name_list_combination(
     [
-        "ViT-B/32",
-        "ViT-B/16",
         "RN50x16",
         "RN50x4",
+        "ViT-B/32",
+        "ViT-B/16",
     ],
     max_combination_num=2,
 )
