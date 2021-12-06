@@ -122,23 +122,25 @@ class MaskOptimizer:
             model_params_dict=model_params_dict,
         )
 
-        text_latents_list = self.model.get_clip_text_encodings(prompt, )
-        text_latents_list = [
-            text_latents.detach().to(DEVICE)
-            for text_latents in text_latents_list
-        ]
-        self.text_latents_list = text_latents_list
+        # text_latents_list = self.model.get_clip_text_encodings(prompt, )
+        # text_latents_list = [
+        #     text_latents.detach().to(DEVICE)
+        #     for text_latents in text_latents_list
+        # ]
+        # self.text_latents_list = text_latents_list
 
         logger.debug(f"STYLE PROMPT {style_prompt}")
+        self.prompt = prompt
+        self.style_prompt = style_prompt
 
-        self.style_latents_list = None
-        if style_prompt != "":
-            style_latents_list = self.model.get_clip_text_encodings(prompt, )
-            style_latents_list = [
-                style_latents.detach().to(DEVICE)
-                for style_latents in style_latents_list
-            ]
-            self.style_latents_list = style_latents_list
+        # self.style_latents_list = None
+        # if style_prompt != "":
+        #     style_latents_list = self.model.get_clip_text_encodings(prompt, )
+        #     style_latents_list = [
+        #         style_latents.detach().to(DEVICE)
+        #         for style_latents in style_latents_list
+        #     ]
+        #     self.style_latents_list = style_latents_list
 
         self.gen_latents = self.model.get_latents_from_img(cond_img, )
         self.gen_latents = self.gen_latents.to(DEVICE)
@@ -222,17 +224,23 @@ class MaskOptimizer:
                 self.cond_img[0]).save(
                     os.path.join(DEBUG_OUT_DIR, "init_img.jpg"))
 
-        img_aug = self.model.augment(gen_img, )
+        img_aug = self.model.augment(
+            gen_img,
+            num_crops=16,
+        )
         img_latents_list = self.model.get_clip_img_encodings(img_aug, )
 
-        for latents_idx in range(len(self.text_latents_list)):
-            text_latents = self.text_latents_list[latents_idx]
+        for latents_idx in range(len(img_latents_list)):
+            text_latents = self.model.get_clip_text_encodings(
+                self.prompt, )[latents_idx]
             img_latents = img_latents_list[latents_idx]
             loss += (text_latents - img_latents).norm(
                 dim=-1).div(2).arcsin().pow(2).mul(2).mean()
 
             if self.style_latents_list is not None:
-                style_latents = self.style_latents_list[latents_idx]
+
+                style_latents = self.model.get_clip_text_encodings(
+                    self.style_prompt, )[latents_idx]
                 loss += (style_latents - img_latents).norm(
                     dim=-1).div(2).arcsin().pow(2).mul(2).mean()
 
