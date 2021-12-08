@@ -197,9 +197,6 @@ class UserSession:
         gen_img = None
         optim_step = 0
         while not self.stop_generation:
-            if self.stop_generation:
-                break
-
             gen_img = self.mask_optimizer.optimize()
 
             updated_canvas = merge_gen_img_into_canvas(
