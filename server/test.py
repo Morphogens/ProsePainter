@@ -8,6 +8,7 @@ from typing import *
 import torch
 import torchvision
 import numpy as np
+from loguru import logger
 from PIL import Image
 
 from server.server_modelling import MaskOptimizer
@@ -29,8 +30,9 @@ def get_clip_model_name_list_combination(
         max_combination_num = len(clip_model_name_list)
 
     clip_model_name_lists = []
-    for binary_mask in itertools.product(range(2), repeat=max_combination_num):
-        if 1 not in binary_mask:
+    for binary_mask in itertools.product(range(2),
+                                         repeat=len(clip_model_name_list)):
+        if 1 not in binary_mask or sum(binary_mask) > max_combination_num:
             continue
 
         clip_model_name_lists.append(
@@ -39,12 +41,15 @@ def get_clip_model_name_list_combination(
     return clip_model_name_lists
 
 
-clip_model_name_lists = get_clip_model_name_list_combination([
-    "ViT-B/32",
-    "ViT-B/16",
-    "RN50x16",
-    "RN50x4",
-], )
+clip_model_name_lists = get_clip_model_name_list_combination(
+    [
+        "RN50x16",
+        "RN50x4",
+        "ViT-B/32",
+        "ViT-B/16",
+    ],
+    max_combination_num=2,
+)
 
 
 def optimize(
@@ -128,7 +133,7 @@ def optimize(
         )
 
         updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas * 255))
-        gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(gen_img[0])
+        # gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(gen_img[0])
         # gen_img_pil.save(
         #     os.path.join(
         #         out_dir,
@@ -154,9 +159,6 @@ if __name__ == "__main__":
 
     out_dir = "./test-generations"
     os.makedirs(out_dir, exist_ok=True)
-
-    # esrgan = ESRGAN()
-    # num_chunks = 1
 
     mask_path_list = glob.glob(os.path.join(img_dir, "mask-*"))
     mask_info_list = [
@@ -207,54 +209,57 @@ if __name__ == "__main__":
                                 out_dir=out_dir,
                             )
                             canvas_img = updated_canvas
-                        except:
-                            print(
-                                "FAILEDDD!",
-                                f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}"
-                            )
+
+                        except Exception as e:
+                            logger.error(
+                                "FAILEDDD!" +
+                                f" {num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}"
+                                + repr(e), )
+                            break
 
                         counter += 1
 
-                # img_crop_tensor = get_crop_tensor_from_img(
-                #     updated_canvas,
-                #     crop_limits,
-                # )
-                # img_crop_tensor = scale_crop_tensor(img_crop_tensor)
-                # img_crop_tensor = esrgan.upscale_img(
-                #     img_crop_tensor,
-                #     num_chunks,
-                # )
+                    if counter == 0:
+                        break
 
-                # updated_canvas = merge_gen_img_into_canvas(
-                #     img_crop_tensor,
-                #     mask_crop_tensor,
-                #     canvas_img,
-                #     crop_limits,
-                # )
+                    else:
+                        try:
+                            canvas_img = copy.deepcopy(original_canvas_img)
 
-                try:
-                    canvas_img = copy.deepcopy(original_canvas_img)
+                            fps = 8
 
-                    fps = 8
+                            clip_models_str = '-'.join([
+                                s.replace('/', '')
+                                for s in clip_model_name_list
+                            ])
+                            lr_str = str(lr).replace('.', ',')
+                            style_prompt_str = '-'.join(
+                                style_prompt.split(' '))
 
-                    cmd = (
-                        "ffmpeg -y "
-                        "-r 16 "
-                        f"-pattern_type glob -i '{out_dir}/0*.jpg' "
-                        "-vcodec libx264 "
-                        f"-crf {fps} "
-                        "-pix_fmt yuv420p "
-                        f"{out_dir}/{num_generations}_generations_{num_rec_steps}_pad_{padding_percent}_rec_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.mp4; "
-                        f"rm -r {out_dir}/0*.jpg;")
+                            out_filename = (f"using_{clip_models_str}"
+                                            f"_style_{style_prompt_str}"
+                                            f"_lr_{lr_str}"
+                                            f"_pad_{padding_percent}"
+                                            f"_{num_rec_steps}_rec_steps"
+                                            f"{num_generations}_generations")
 
-                    subprocess.check_call(cmd, shell=True)
+                            cmd = ("ffmpeg -y "
+                                   "-r 16 "
+                                   f"-pattern_type glob -i '{out_dir}/0*.jpg' "
+                                   "-vcodec libx264 "
+                                   f"-crf {fps} "
+                                   "-pix_fmt yuv420p "
+                                   "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
+                                   f"{out_dir}/{out_filename}.mp4; "
+                                   f"rm -r {out_dir}/0*.jpg;")
 
-                    updated_canvas_pil = Image.fromarray(
-                        np.uint8(updated_canvas * 255))
-                    updated_canvas_pil.save(
-                        os.path.join(
-                            out_dir,
-                            f"{num_generations}_generations_{num_rec_steps}_rec_pad_{padding_percent}_using-{'-'.join([s.replace('/', '') for s in clip_model_name_list])}_lr_{lr}.jpg"
-                        ))
-                except:
-                    print("SAVING FAILED")
+                            subprocess.check_call(cmd, shell=True)
+
+                            updated_canvas_pil = Image.fromarray(
+                                np.uint8(updated_canvas * 255))
+                            updated_canvas_pil.save(
+                                f"{out_dir}/{out_filename}.jpg")
+
+                        except Exception as e:
+                            logger.error("SAVING FAILED")
+                            logger.error(repr(e))

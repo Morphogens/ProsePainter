@@ -11,11 +11,13 @@ dependencies:
   - imageio=2.9.0
   - python=3.7.9
   - pip=21.0.1
-  - scipy==1.7.3
   - pip:
     - fastapi==0.68.1
     - aiofiles==0.7.0
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
     - upscaler==0.0.5
-    - geniverse==0.0.12
+    - geniverse==0.0.12.11
+    - jax==0.2.25
+    - jaxlib==0.1.74
+    - scipy==1.7.1

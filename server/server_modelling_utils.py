@@ -49,8 +49,9 @@ def get_limits_from_mask(
         Tuple: limits in the following order: min_h, max_h, min_w, max_w.
     """
     height, width = mask.shape
-    w_pad = int(width * (padding_percent / 100))
-    h_pad = int(height * (padding_percent / 100))
+    max_dim = max(height, width)
+    w_pad = int(max_dim * (padding_percent / 100))
+    h_pad = int(max_dim * (padding_percent / 100))
 
     w_accum = np.where(np.sum(
         mask,
