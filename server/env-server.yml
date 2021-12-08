@@ -18,4 +18,4 @@ dependencies:
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
     - upscaler==0.0.5
-    - geniverse==0.0.12
+    - geniverse==0.0.12.12
