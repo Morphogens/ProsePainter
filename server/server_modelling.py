@@ -226,7 +226,7 @@ class MaskOptimizer:
 
         img_aug = self.model.augment(
             gen_img,
-            num_crops=16,
+            num_crops=32,
         )
         img_latents_list = self.model.get_clip_img_encodings(img_aug, )
 
