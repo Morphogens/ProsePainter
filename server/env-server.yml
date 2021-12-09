@@ -20,4 +20,3 @@ dependencies:
     - geniverse==0.0.12.11
     - jax==0.2.25
     - jaxlib==0.1.74
-    - scipy==1.7.1
