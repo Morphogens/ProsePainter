@@ -23,4 +23,4 @@ jobs:
           cache-to: type=gha
 
       - name: Test
-        run: docker run prosepainter:latest conda run --no-capture-output -n prosepaint python /server/server_test.py
+        run: docker run docker.io/library/prosepainter:latest conda run --no-capture-output -n prosepaint python /server/server_test.py
