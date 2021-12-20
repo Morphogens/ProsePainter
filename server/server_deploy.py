@@ -8,7 +8,7 @@ import fastapi
 import torchvision
 import uvicorn
 import numpy as np
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from loguru import logger
@@ -315,7 +315,10 @@ class UserSession:
         """
         try:
             while True:
-                msg_dict = await self.websocket.receive_json()
+                try:
+                    msg_dict = await self.websocket.receive_json()
+                except WebSocketDisconnect:
+                    break
 
                 topic = msg_dict["topic"]
                 logger.info(f"RECEIVED TOPIC {topic}")
@@ -450,6 +453,7 @@ else:
     level = "DEBUG"
 
 logger.remove()
+logger.disable("uvicorn")
 logger.add(
     sys.stderr,
     level=level,
