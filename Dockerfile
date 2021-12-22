@@ -56,16 +56,16 @@ ENV MODELING_DIR=/opt/conda/envs/prosepaint/lib/python3.7/site-packages/genivers
 
 # Pre-download model weights - see https://github.com/thegeniverse/geniverse/blob/main/geniverse/models/taming/modeling_taming.py
 # and make sure that model URLs and filenames stay lined up.
-RUN mkdir -p $MODELING_DIR/taming/.modeling_cache \
-  && wget -q -O $MODELING_DIR/taming/.modeling_cache/imagenet-16384.ckpt https://heibox.uni-heidelberg.de/d/a7530b09fed84f80a887/files/?p=%2Fckpts%2Flast.ckpt&dl=1 \
-  && wget -q -O $MODELING_DIR/taming/.modeling_cache/imagenet-16384.yaml https://raw.githubusercontent.com/vipermu/taming-transformers/master/configs/imagenet-16384.yaml \
-  && mkdir -p /root/.cache/torch/hub/checkpoints/ \
-  && wget -q -O /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth https://download.pytorch.org/models/vgg16-397923af.pth \
-  # CLIP from https://github.com/thegeniverse/geniverse/blob/main/geniverse/modeling_utils.py
-  && mkdir -p /root/.cache/clip \
-  && wget -q -O /root/.cache/clip/ViT-B-32.pt https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt \
-  # VGG LPIPS from https://github.com/CompVis/taming-transformers/blob/master/taming/modules/losses/lpips.py
-  && wget -q -O $MODELING_DIR/taming/.modeling_cache/vgg.pth https://heibox.uni-heidelberg.de/f/607503859c864bc1b30b/?dl=1
+# RUN mkdir -p $MODELING_DIR/taming/.modeling_cache \
+#   && wget -q -O $MODELING_DIR/taming/.modeling_cache/imagenet-16384.ckpt https://heibox.uni-heidelberg.de/d/a7530b09fed84f80a887/files/?p=%2Fckpts%2Flast.ckpt&dl=1 \
+#   && wget -q -O $MODELING_DIR/taming/.modeling_cache/imagenet-16384.yaml https://raw.githubusercontent.com/vipermu/taming-transformers/master/configs/imagenet-16384.yaml \
+#   && mkdir -p /root/.cache/torch/hub/checkpoints/ \
+#   && wget -q -O /root/.cache/torch/hub/checkpoints/vgg16-397923af.pth https://download.pytorch.org/models/vgg16-397923af.pth \
+#   # CLIP from https://github.com/thegeniverse/geniverse/blob/main/geniverse/modeling_utils.py
+#   && mkdir -p /root/.cache/clip \
+#   && wget -q -O /root/.cache/clip/ViT-B-32.pt https://openaipublic.azureedge.net/clip/models/40d365715913c9da98579312b702a82c18be219cc2a73407c4526f58eba950af/ViT-B-32.pt \
+#   # VGG LPIPS from https://github.com/CompVis/taming-transformers/blob/master/taming/modules/losses/lpips.py
+#   && wget -q -O $MODELING_DIR/taming/.modeling_cache/vgg.pth https://heibox.uni-heidelberg.de/f/607503859c864bc1b30b/?dl=1
 
 COPY server ./
 
