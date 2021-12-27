@@ -27,6 +27,7 @@
     "infinite-viewer": "^0.12.1",
     "lodash-es": "^4.17.21",
     "postcss": "^8.3.6",
+    "svelte-select": "^4.4.6",
     "tailwindcss": "^2.2.15",
     "vite-tsconfig-paths": "^3.3.14"
   }
