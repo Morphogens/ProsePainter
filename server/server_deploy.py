@@ -24,7 +24,7 @@ from server.server_modelling_utils import (
     merge_gen_img_into_canvas,
 )
 from server.server_data_utils import base64_to_pil, pil_to_base64
-from server.server_config import CLIP_MODEL_NAME_LIST, DEBUG, DEBUG_OUT_DIR, MODEL_NAME
+from server.server_config import CLIP_MODEL_NAME_LIST, DEBUG, DEBUG_OUT_DIR, MODEL_NAME, TAMING_MODEL_NAME
 
 app = fastapi.FastAPI()
 
@@ -187,7 +187,8 @@ class UserSession:
                 style_prompt=style_prompt,
                 model_name=MODEL_NAME,
                 model_params_dict={
-                    'clip_model_name_list': CLIP_MODEL_NAME_LIST
+                    'clip_model_name_list': CLIP_MODEL_NAME_LIST,
+                    'model_name': TAMING_MODEL_NAME,
                 },
             )
 

@@ -1,4 +1,5 @@
 MODEL_NAME = "taming"
+TAMING_MODEL_NAME = "openimages-8192"
 
 MAX_IMG_DIM = 512
 MIN_IMG_DIM = 256
