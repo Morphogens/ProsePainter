@@ -6,6 +6,7 @@
         mode,
         stylePrompt,
         numRecSteps,
+        modelType,
     } from "@/stores";
     import * as optEvents from "../optimizeEvents";
     import { socketOpen } from "@/lib/socket";
@@ -13,6 +14,11 @@
     import Slider from "./Slider.svelte";
     export let maskCanvas: DrawCanvas;
     let seeAdvanced = false
+    import Select from 'svelte-select';
+
+    const modelTypes = ['imagenet-16384', 'openimages-8192'];
+
+
 </script>
 
 {#if $mode == Mode.MaskDraw && maskCanvas}
@@ -62,6 +68,9 @@
             max={64}
             step={4}
         />
+        Model Type
+        <Select style="width:100%" items={modelTypes} bind:value={$modelType}></Select>
+
     {:else}
         <button on:click={() => seeAdvanced=true}>
             <p>Advanced</p>

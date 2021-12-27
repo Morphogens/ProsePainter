@@ -29,6 +29,8 @@ class ModelFactory:
         self.aphantasia = None
         self.esrgan = None
 
+        self.taming_params = {}
+
     def load_model(
         self,
         model_name: str,
@@ -47,7 +49,7 @@ class ModelFactory:
         logger.debug(f"LOADING {model_name}...")
 
         if model_name == "taming":
-            if self.taming_decoder is None or recompute:
+            if self.taming_decoder is None or recompute or model_params_dict != self.taming_params:
                 logger.info("SETTING UP TAMING...")
                 self.taming_decoder = TamingDecoder(**model_params_dict, )
                 self.taming_decoder.eval()

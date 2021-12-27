@@ -24,7 +24,7 @@ from server.server_modelling_utils import (
     merge_gen_img_into_canvas,
 )
 from server.server_data_utils import base64_to_pil, pil_to_base64
-from server.server_config import CLIP_MODEL_NAME_LIST, DEBUG, DEBUG_OUT_DIR, MODEL_NAME, TAMING_MODEL_NAME
+from server.server_config import CLIP_MODEL_NAME_LIST, DEBUG, DEBUG_OUT_DIR, MODEL_NAME
 
 app = fastapi.FastAPI()
 
@@ -113,6 +113,7 @@ class UserSession:
         style_prompt: str = "",
         padding_percent: float = 5.,
         num_rec_steps: int = 16,
+        model_type: str = "imagenet-16384",
         **kwargs,
     ) -> None:
         """
@@ -188,7 +189,7 @@ class UserSession:
                 model_name=MODEL_NAME,
                 model_params_dict={
                     'clip_model_name_list': CLIP_MODEL_NAME_LIST,
-                    'model_name': TAMING_MODEL_NAME,
+                    'model_name': model_type,
                 },
             )
 
@@ -356,6 +357,7 @@ class UserSession:
                         "style_prompt": data_dict["stylePrompt"],
                         "padding_percent": 10.,
                         "num_rec_steps": data_dict["numRecSteps"],
+                        "model_type": data_dict["modelType"]["value"],
                     }
 
                     optimize_layer_thread = threading.Thread(
