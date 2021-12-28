@@ -31,3 +31,17 @@ export function downloadCanvas(
     aDownloadLink.href = url
     aDownloadLink.click()
 }
+
+
+export function mergeCanvas(
+    canvas1: HTMLCanvasElement,
+    canvas2: HTMLCanvasElement
+): HTMLCanvasElement {
+    const newCanvas = document.createElement('canvas')
+    const newCtx = newCanvas.getContext('2d')
+    newCanvas.width = canvas1.width
+    newCanvas.height = canvas1.height
+    newCtx.drawImage(canvas1, 0, 0)
+    newCtx.drawImage(canvas2, 0, 0)
+    return newCanvas
+}

@@ -7,7 +7,7 @@
     import { mode } from "./stores";
     import startBackgroundUrl from "./assets/startImage0.jpeg";
     import downloadUrl from "./assets/download.svg";
-    import { downloadCanvas, loadImage } from "./utils";
+    import { downloadCanvas, mergeCanvas } from "./utils";
     import { Mode } from "./types";
     import {
         lastOptimizationResult,
@@ -16,7 +16,7 @@
         canvasSize,
     } from "./stores";
     import { drawCircle, drawLines } from "./drawing/drawUtils";
-    import { imageContour } from "./imageContour";
+    import { drawMaskGridAlpha, drawGrid } from "./maskDrawMethods";
 
     let mouseover = false;
     let cursorCanvas: HTMLCanvasElement;
@@ -24,6 +24,7 @@
 
     let outlineCanvas: HTMLCanvasElement;
     let outlineCtx: CanvasRenderingContext2D;
+    $: magicMaskFilter = drawGrid($canvasSize, 3);
 
     function activeDrawCanvas(): DrawCanvas {
         if ($mode == Mode.DirectDraw) {
@@ -52,7 +53,7 @@
         const [x, y] = [event.offsetX, event.offsetY];
         cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
         const canvas = activeDrawCanvas();
-        cursorCtx.lineWidth = 1;
+        cursorCtx.lineWidth = 2;
         cursorCtx.strokeStyle = "white";
         if (canvas) {
             cursorCtx.fillStyle = canvas.strokeColor;
@@ -70,18 +71,26 @@
         }
     }
 
-    function drawContours(contours: number[][][]) {
-        outlineCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
-        outlineCtx.lineWidth = 1;
-        outlineCtx.setLineDash([3, 3]);
-        for (const poly of contours) {
-            drawLines(outlineCtx, poly);
-        }
+    function onMaskCanvasStroke(data) {
+        const { currentStrokeCanvas } = data.detail;
+        drawMaskGridAlpha(
+            outlineCtx,
+            $canvasSize as [number, number],
+            mergeCanvas($maskCanvas.getCanvas(), currentStrokeCanvas),
+            magicMaskFilter[0]
+        );
     }
 
     function onMaskCanvasChange(data) {
         const { canvas, ctx } = data.detail;
-        drawContours(imageContour(canvas, ctx) as number[][][]);
+        drawMaskGridAlpha(
+            outlineCtx,
+            $canvasSize as [number, number],
+            canvas,
+            magicMaskFilter[0]
+        );
+        // drawMaskGridInverted(canvas);
+        // drawMaskGridBinary(canvas);
     }
 
     onMount(async () => {
@@ -120,30 +129,41 @@
             on:focus={() => (mouseover = true)}
             on:blur={() => (mouseover = false)}
         >
-            <DrawCanvas
-                width={$canvasSize[0]}
-                height={$canvasSize[1]}
-                radius={4}
-                id="mainCanvas"
-                defaultImageUrl={startBackgroundUrl}
-                bind:this={$mainCanvas}
-            />
-            <div class:hidden={$mode == Mode.DirectDraw || !mouseover}>
+            <div style="opacity:1;">
                 <DrawCanvas
                     width={$canvasSize[0]}
                     height={$canvasSize[1]}
-                    id="maskCanvas"
-                    on:change={onMaskCanvasChange}
-                    bind:this={$maskCanvas}
+                    radius={4}
+                    id="mainCanvas"
+                    defaultImageUrl={startBackgroundUrl}
+                    bind:this={$mainCanvas}
                 />
             </div>
-            <canvas
-                id="outlineCanvas"
-                class="hiddenOverlay"
-                width={$canvasSize[0]}
-                height={$canvasSize[1]}
-                bind:this={outlineCanvas}
-            />
+            <!-- <div class:hidden={$mode == Mode.DirectDraw || !mouseover}> -->
+            <div class:hidden={$mode == Mode.DirectDraw}>
+                <div style="opacity:0;">
+                    <DrawCanvas
+                        radius={50}
+                        softness={10}
+                        width={$canvasSize[0]}
+                        height={$canvasSize[1]}
+                        id="maskCanvas"
+                        maskFilter={magicMaskFilter[0]}
+                        on:change={onMaskCanvasChange}
+                        on:stroke={onMaskCanvasStroke}
+                        bind:this={$maskCanvas}
+                    />
+                </div>
+            </div>
+            <div class:hidden={$mode != Mode.MaskDraw}>
+                <canvas
+                    id="outlineCanvas"
+                    class="hiddenOverlay"
+                    width={$canvasSize[0]}
+                    height={$canvasSize[1]}
+                    bind:this={outlineCanvas}
+                />
+            </div>
             {#if $lastOptimizationResult}
                 <img
                     id="optPreview"

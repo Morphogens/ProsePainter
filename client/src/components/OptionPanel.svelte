@@ -20,7 +20,7 @@ import SetImageOptions from "./SetImageOptions.svelte";
         >
         <button
             class:selected={$mode == Mode.DirectDraw}
-            on:click={(e) => ($mode = Mode.DirectDraw)}><p>Draw</p></button
+            on:click={(e) => ($mode = Mode.DirectDraw)}><p>Sketch</p></button
         >
         <button
             class:selected={$mode == Mode.MaskDraw}

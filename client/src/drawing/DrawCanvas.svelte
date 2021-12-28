@@ -7,7 +7,7 @@
     import { loadImage } from "../utils"
     
     export let id: string;
-    export let radius = 20;
+    export let radius = 30;
     export let opacity = 3;
     export let softness = 3;
     export let erasing = false;
@@ -16,6 +16,7 @@
     export let width: number;
     export let height: number;
     export let defaultImageUrl: string | null = null
+    export let maskFilter:HTMLCanvasElement|null = null // Temporary hack.
 
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -57,6 +58,10 @@
 
     export function getCanvas(): HTMLCanvasElement {
         return canvas;
+    }
+    
+    export function getContext(): CanvasRenderingContext2D {
+        return ctx;
     }
 
     async function setFromUndoRedo() {
@@ -133,8 +138,16 @@
                 currentStrokeCtx.lineJoin = "round";
                 currentStrokeCtx.clearRect(0, 0, width, height);
                 drawLines(currentStrokeCtx, currentStroke);
+                
+                dispatch('stroke', { currentStrokeCtx, currentStrokeCanvas })
+                // ctx.globalCompositeOperation = 'source-in'
+                // if (maskFilter) {
+                //     currentStrokeCtx.drawImage(maskFilter, 0, 0)
+                // }
+                // maskFilter
             }
         }
+        ctx.globalCompositeOperation = 'source-over' // reset.
     }
 </script>
 
