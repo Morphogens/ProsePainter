@@ -68,8 +68,8 @@
             max={64}
             step={4}
         />
-        Model Type
-        <Select style="width:100%" items={modelTypes} bind:value={$modelType}></Select>
+        <!-- Model Type
+        <Select style="width:100%" items={modelTypes} bind:value={$modelType}></Select> -->
 
     {:else}
         <button on:click={() => seeAdvanced=true}>
