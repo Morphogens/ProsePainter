@@ -59,6 +59,7 @@
         <Slider
             name="Learn Rate"
             bind:val={$learningRate}
+            min={10}
             max={500}
             step={10}
         />
