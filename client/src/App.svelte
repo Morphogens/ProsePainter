@@ -72,11 +72,12 @@
     }
 
     function onMaskCanvasStroke(data) {
-        const { currentStrokeCanvas } = data.detail;
+        const { ctx, canvas } = data.detail;
         drawMaskGridAlpha(
             outlineCtx,
             $canvasSize as [number, number],
-            mergeCanvas($maskCanvas.getCanvas(), currentStrokeCanvas),
+            canvas,
+            // mergeCanvas($maskCanvas.getCanvas(), currentStrokeCanvas),
             magicMaskFilter[0]
         );
     }

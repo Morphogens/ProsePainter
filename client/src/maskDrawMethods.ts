@@ -1,10 +1,13 @@
-// import { imageContour } from "./imageContour";
+import { drawLines } from "./drawing/drawUtils";
+import { imageContour } from "./imageContour";
 
 export function drawGrid(
     canvasSize: number[],
     gridSize: number,
-    colorA: string = 'lightblue',
-    colorB: string = 'yellow'
+    // colorA: string = 'lightblue',
+    // colorB: string = 'yellow'
+    colorA: string = 'white',
+    colorB: string = 'black'
 ): [HTMLCanvasElement, CanvasRenderingContext2D] {
     const canvas: HTMLCanvasElement = document.createElement('canvas')
     canvas.width = canvasSize[0]
@@ -25,6 +28,31 @@ export function drawGrid(
     return [canvas, ctx]
 }
 
+
+function drawContours(
+    maskCanvas: HTMLCanvasElement,
+    dstCtx: CanvasRenderingContext2D,
+    colorA: string = 'white',
+    colorB: string = 'black'
+) {
+    const contours = imageContour(maskCanvas, maskCanvas.getContext('2d')) as number[][][]
+    dstCtx.globalAlpha = .5
+    dstCtx.lineWidth = 1;
+    dstCtx.lineDashOffset = 0;
+    dstCtx.strokeStyle = colorA
+    dstCtx.setLineDash([3, 3]);
+    for (const poly of contours) {
+        drawLines(dstCtx, poly);
+    }
+    dstCtx.lineDashOffset = 4;
+    dstCtx.strokeStyle = colorB
+    dstCtx.setLineDash([4, 4]);
+    for (const poly of contours) {
+        drawLines(dstCtx, poly);
+    }
+    dstCtx.globalAlpha = 0
+}
+
 export function drawMaskGridAlpha(
     dstCtx: CanvasRenderingContext2D,
     canvasSize: number[],
@@ -32,22 +60,43 @@ export function drawMaskGridAlpha(
     gridCanvas: HTMLCanvasElement
 ) {
     dstCtx.clearRect(0, 0, canvasSize[0], canvasSize[1]);
-    dstCtx.globalAlpha = 0.6
+    dstCtx.globalAlpha = 0.4
     dstCtx.drawImage(gridCanvas, 0, 0)
     dstCtx.globalAlpha = 1.0
     dstCtx.globalCompositeOperation = "destination-in";
     dstCtx.drawImage(maskCanvas, 0, 0)
-    dstCtx.globalCompositeOperation = "source-over"; // reset to defauly.
+    dstCtx.globalCompositeOperation = "source-over"; // reset to default.
+
+    // Draw contours
+    drawContours(maskCanvas, dstCtx)
+
 }
 
-// function drawContours(contours: number[][][]) {
-//     outlineCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
-//     outlineCtx.lineWidth = 1;
-//     outlineCtx.setLineDash([3, 3]);
-//     for (const poly of contours) {
-//         drawLines(outlineCtx, poly);
+
+// export function drawGridColor(
+//     canvas:HTMLCanvasElement,
+//     ctx: CanvasRenderingContext2D,
+//     gridSize: number,
+//     color:string,
+//     offset: boolean
+// ): [HTMLCanvasElement, CanvasRenderingContext2D] {
+//     const numCols = Math.round(canvas.width / gridSize)
+//     const numRows = Math.round(canvas.height / gridSize)
+//     ctx.beginPath()
+//     ctx.fillStyle = color
+//     for (let row = 0; row < numRows; row += 1) {
+//         for (let col = 0; col < numCols; col += 1) {
+//             if ((row % 2 == col % 2) == offset) {
+//                 const x = col * gridSize
+//                 const y = row * gridSize
+//                 ctx.rect(x, y, gridSize, gridSize)
+//             }
+//         }
 //     }
+//     ctx.fill()
+//     return [canvas, ctx]
 // }
+
 
 // function drawGrid(gridSize:number): [HTMLCanvasElement, CanvasRenderingContext2D] {
 //     const canvas:HTMLCanvasElement = document.createElement('canvas')
