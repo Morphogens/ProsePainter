@@ -1,6 +1,8 @@
 <svelte:options accessors />
 
 <script lang="ts">
+    import type { Writable } from 'svelte/store'
+    import { writable } from 'svelte/store'
     import { onMount, createEventDispatcher } from "svelte";
     const dispatch = createEventDispatcher();
     import { drawLines } from "./drawUtils";
@@ -13,11 +15,13 @@
     export let erasing = false;
     export let canvasBase64: string | null = null;
     export let strokeColor = "#000000";
-    export let width: number;
-    export let height: number;
     export let defaultImageUrl: string | null = null;
     export let maskFilter: HTMLCanvasElement | null = null; // Temporary hack.
+    export let canvasSize: Writable<number[]> = writable([512, 512])
 
+    $: width = $canvasSize[0]
+    $: height = $canvasSize[1]
+    
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
 
@@ -51,7 +55,7 @@
         canvasChanged();
     }
 
-    export function resize(width: number, height: number) {
+    $: if (canvas && width && height) {
         canvas.width = width;
         canvas.height = height;
         currentStrokeCanvas.width = width;
@@ -61,8 +65,8 @@
     }
 
     export function set(src: HTMLCanvasElement | HTMLImageElement) {
-        resize(src.width, src.height);
-        console.log("set image");
+        console.log("set image")
+        ctx.clearRect(0, 0, width, height)
         ctx.drawImage(src, 0, 0);
         canvasChanged();
     }
@@ -105,9 +109,6 @@
         const savedUrl = window.localStorage.getItem(`${id}-canvasBase64`);
         const startUrl = savedUrl || defaultImageUrl;
         console.log("startUrl", startUrl.length);
-
-        resize(canvas.width, canvas.height);
-
         if (startUrl != null && startUrl != "null") {
             const startImage = await loadImage(startUrl);
             ctx.drawImage(startImage, 0, 0);

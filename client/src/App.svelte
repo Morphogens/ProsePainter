@@ -77,7 +77,6 @@
             outlineCtx,
             $canvasSize as [number, number],
             canvas,
-            // mergeCanvas($maskCanvas.getCanvas(), currentStrokeCanvas),
             magicMaskFilter[0]
         );
     }
@@ -90,8 +89,6 @@
             canvas,
             magicMaskFilter[0]
         );
-        // drawMaskGridInverted(canvas);
-        // drawMaskGridBinary(canvas);
     }
 
     onMount(async () => {
@@ -131,9 +128,10 @@
             on:blur={() => (mouseover = false)}
         >
             <div style="opacity:1;">
+                <!-- width={$canvasSize[0]}
+                height={$canvasSize[1]} -->
                 <DrawCanvas
-                    width={$canvasSize[0]}
-                    height={$canvasSize[1]}
+                    {canvasSize}
                     radius={4}
                     id="mainCanvas"
                     defaultImageUrl={startBackgroundUrl}
@@ -143,11 +141,12 @@
             <!-- <div class:hidden={$mode == Mode.DirectDraw || !mouseover}> -->
             <div class:hidden={$mode == Mode.DirectDraw}>
                 <div style="opacity:0;">
+                    <!-- width={$canvasSize[0]}
+                    height={$canvasSize[1]} -->
                     <DrawCanvas
                         radius={50}
                         softness={10}
-                        width={$canvasSize[0]}
-                        height={$canvasSize[1]}
+                        {canvasSize}
                         id="maskCanvas"
                         maskFilter={magicMaskFilter[0]}
                         on:change={onMaskCanvasChange}
