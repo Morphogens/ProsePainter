@@ -60,7 +60,7 @@ import SetImageOptions from "./SetImageOptions.svelte";
         left: 0px;
         top: 60px;
         z-index: 2;
-        width: 128px;
+        width: 150px;
         display: flex;
         flex-direction: column;
         background: white;

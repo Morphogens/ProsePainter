@@ -1,12 +1,7 @@
 import { writable, readable, get } from 'svelte/store'
+import { SERVER_URL } from '../constants'
 
-const host = window.location.hostname;
-const hasPort = window.location.host.endsWith(":8003") || window.location.host.endsWith(":8004");
-const port = hasPort ? ":8004" : "";
-const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-const serverURL = `${proto}//${host}${port}/ws`;
-
-let socket = new WebSocket(serverURL)
+let socket = new WebSocket(SERVER_URL)
 const events = []
 export const socketOpen = writable(false)
 
@@ -15,7 +10,7 @@ function attemptConnect() {
         return
     }
     console.log('Attempting socket connection...');    
-    socket = new WebSocket(serverURL)
+    socket = new WebSocket(SERVER_URL)
     socket.onerror = function(error) {
         console.log('Socket error:', error)
     };
