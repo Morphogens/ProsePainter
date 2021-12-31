@@ -113,6 +113,7 @@ class UserSession:
         style_prompt: str = "",
         padding_percent: float = 5.,
         num_rec_steps: int = 16,
+        model_type: str = "imagenet-16384",
         **kwargs,
     ) -> None:
         """
@@ -187,7 +188,8 @@ class UserSession:
                 style_prompt=style_prompt,
                 model_name=MODEL_NAME,
                 model_params_dict={
-                    'clip_model_name_list': CLIP_MODEL_NAME_LIST
+                    'clip_model_name_list': CLIP_MODEL_NAME_LIST,
+                    'model_name': model_type,
                 },
             )
 
@@ -355,6 +357,7 @@ class UserSession:
                         "style_prompt": data_dict["stylePrompt"],
                         "padding_percent": 10.,
                         "num_rec_steps": data_dict["numRecSteps"],
+                        "model_type": data_dict["modelType"]["value"],
                     }
 
                     optimize_layer_thread = threading.Thread(

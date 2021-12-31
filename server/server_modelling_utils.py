@@ -1,3 +1,4 @@
+import copy
 import os
 from typing import *
 
@@ -191,13 +192,17 @@ def merge_gen_img_into_canvas(
     gen_img = gen_img[0].detach().cpu().permute(1, 2, 0).numpy()
     mask = mask[0].detach().cpu().permute(1, 2, 0).numpy()
 
-    canvas_img[
+    result_img = copy.deepcopy(canvas_img)
+
+    result_img[
         crop_limits[0]:crop_limits[1],
         crop_limits[2]:crop_limits[3], :] = canvas_img[
             crop_limits[0]:crop_limits[1],
             crop_limits[2]:crop_limits[3], :] * (1 - mask) + gen_img * mask
+    # canvas_img[crop_limits[0]:crop_limits[1],
+    #            crop_limits[2]:crop_limits[3], :] = gen_img
 
-    return canvas_img
+    return result_img
 
 
 def _get_confirm_token(response, ):

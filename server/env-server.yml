@@ -17,6 +17,4 @@ dependencies:
     - uvicorn[standard]==0.15.0
     - loguru==0.5.3
     - upscaler==0.0.5
-    - geniverse==0.0.12.11
-    - jax==0.2.25
-    - jaxlib==0.1.74
+    - geniverse==0.1.5
