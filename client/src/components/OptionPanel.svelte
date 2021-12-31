@@ -64,8 +64,10 @@
         display: flex;
         flex-direction: column;
         background: white;
-        border-top-right-radius: 4px;
-        border-bottom-right-radius: 4px;
+        /* border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px; */
+        border-right: 1px solid #ccc;
+        border-bottom: 1px solid #ccc;
         align-items: center;
         overflow: hidden;
     }

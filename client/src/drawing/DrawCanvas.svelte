@@ -11,7 +11,7 @@
     export let id: string;
     export let radius = 30;
     export let opacity = 3;
-    export let softness = 3;
+    export let softness = .2;
     export let erasing = false;
     export let canvasBase64: string | null = null;
     export let strokeColor = "#000000";
@@ -21,6 +21,7 @@
 
     $: width = $canvasSize[0]
     $: height = $canvasSize[1]
+    $: console.log('sdsa', canvasSize);
     
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -138,12 +139,20 @@
         }
         const [x, y] = [event.offsetX, event.offsetY];
         currentStroke.push([x, y]);
+        
+        /*
+         The blur effect is now defined by to be a Gaussian blur with the
+         standard deviation (σ) equal to  half the given blur radius,
+         with allowance for reasonable  approximation error.
+        */
+        const blurRadiusPixels = Math.round(softness * radius)
+        const blurSTDPixels = Math.round(blurRadiusPixels * 0.5)
         // currentStrokeCtx.globalAlpha = 1 - opacity;
-        currentStrokeCtx.filter = `blur(${softness}px)`;
+        currentStrokeCtx.filter = `blur(${blurSTDPixels}px)`;
         currentStrokeCtx.strokeStyle = erasing
             ? "rgba(255,255,255,1)"
             : strokeColor;
-        currentStrokeCtx.lineWidth = (radius - 1.9*softness);
+        currentStrokeCtx.lineWidth = (2*(radius - blurRadiusPixels))
         currentStrokeCtx.lineCap = "round";
         currentStrokeCtx.lineJoin = "round";
         currentStrokeCtx.clearRect(0, 0, width, height);

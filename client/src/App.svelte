@@ -61,7 +61,7 @@
                 cursorCtx,
                 x,
                 y,
-                (canvas.radius + canvas.softness) / 2,
+                canvas.radius,
                 true,
                 true
             );
@@ -145,7 +145,7 @@
                     height={$canvasSize[1]} -->
                     <DrawCanvas
                         radius={50}
-                        softness={10}
+                        softness={.2}
                         {canvasSize}
                         id="maskCanvas"
                         maskFilter={magicMaskFilter[0]}

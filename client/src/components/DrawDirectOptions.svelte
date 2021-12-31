@@ -40,7 +40,7 @@
         max={96}
         step={1}
     />
-    <Slider name="Softness" bind:val={mainCanvas.softness} max={20} step={1} />
+    <Slider name="Softness" bind:val={mainCanvas.softness} max={1} step={.05} />
     
     <br>
     <input type="color" bind:value={mainCanvas.strokeColor} />

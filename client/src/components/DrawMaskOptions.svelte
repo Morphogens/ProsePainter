@@ -44,7 +44,7 @@
         max={96}
         step={1}
     />
-    <Slider name="Softness" bind:val={maskCanvas.softness} max={20} step={1} />
+    <Slider name="Softness" bind:val={maskCanvas.softness} max={1} step={.05} />
     <button on:click={() => maskCanvas.clear()}> Clear </button>
     
     {#if seeAdvanced}
