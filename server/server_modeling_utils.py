@@ -1,3 +1,4 @@
+import copy
 import os
 from typing import *
 
@@ -57,15 +58,19 @@ def get_limits_from_mask(
         mask,
         axis=0,
     ) > 0)[-1]
+    h_accum = np.where(np.sum(
+        mask,
+        axis=1,
+    ) > 0)[-1]
+
+    if len(w_accum) == 0 or len(h_accum) == 0:
+        return None
+
     w_limits = (
         max(0, w_accum[0] - w_pad),
         min(width, w_accum[-1] + w_pad),
     )
 
-    h_accum = np.where(np.sum(
-        mask,
-        axis=1,
-    ) > 0)[-1]
     h_limits = (
         max(0, h_accum[0] - h_pad),
         min(height, h_accum[-1] + h_pad),
@@ -191,13 +196,17 @@ def merge_gen_img_into_canvas(
     gen_img = gen_img[0].detach().cpu().permute(1, 2, 0).numpy()
     mask = mask[0].detach().cpu().permute(1, 2, 0).numpy()
 
-    canvas_img[
+    result_img = copy.deepcopy(canvas_img)
+
+    result_img[
         crop_limits[0]:crop_limits[1],
         crop_limits[2]:crop_limits[3], :] = canvas_img[
             crop_limits[0]:crop_limits[1],
             crop_limits[2]:crop_limits[3], :] * (1 - mask) + gen_img * mask
+    # canvas_img[crop_limits[0]:crop_limits[1],
+    #            crop_limits[2]:crop_limits[3], :] = gen_img
 
-    return canvas_img
+    return result_img
 
 
 def _get_confirm_token(response, ):

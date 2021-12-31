@@ -11,8 +11,8 @@ import numpy as np
 from loguru import logger
 from PIL import Image
 
-from server.server_modelling import MaskOptimizer
-from server.server_modelling_utils import (
+from server.server_modeling import MaskOptimizer
+from server.server_modeling_utils import (
     process_mask,
     get_limits_from_mask,
     get_crop_tensor_from_img,
@@ -43,8 +43,8 @@ def get_clip_model_name_list_combination(
 
 clip_model_name_lists = get_clip_model_name_list_combination(
     [
-        "RN50x16",
-        "RN50x4",
+        # "rn50x16",
+        # "RN50x4",
         "ViT-B/32",
         "ViT-B/16",
     ],
@@ -148,7 +148,7 @@ def optimize(
 
 
 if __name__ == "__main__":
-    num_rec_steps = 8
+    num_rec_steps = 0
     num_generations = 16
     lr_list = [0.1, 0.25, 0.5]
     padding_percent_list = [10, 30]

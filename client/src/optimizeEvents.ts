@@ -1,7 +1,7 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
 import { addEventListener, messageServer } from "@/lib/socket";
-import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt, numRecSteps } from './stores'
+import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt, numRecSteps, modelType} from './stores'
 import { imgTob64 } from './utils';
 
 interface StartGenerationData {
@@ -10,7 +10,8 @@ interface StartGenerationData {
     imageBase64: string,
     learningRate: number,
     backgroundImg: string,
-    numRecSteps: number | null
+    numRecSteps: number | null,
+    modelType: string
 }
 
 function getGenerationData():StartGenerationData {
@@ -21,6 +22,7 @@ function getGenerationData():StartGenerationData {
         imageBase64: get(maskCanvas).canvasBase64,
         backgroundImg: get(mainCanvas).canvasBase64,
         numRecSteps: get(numRecSteps),
+        modelType: get(modelType)
     }
 }
 

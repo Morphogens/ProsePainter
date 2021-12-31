@@ -29,10 +29,13 @@ class ModelFactory:
         self.aphantasia = None
         self.esrgan = None
 
+        self.taming_params = {}
+
     def load_model(
         self,
         model_name: str,
-        model_params_dict: Dict = None,
+        device: str,
+        model_params_dict: Dict = {},
         recompute: bool = False,
     ) -> torch.nn.Module:
         """
@@ -47,20 +50,15 @@ class ModelFactory:
         logger.debug(f"LOADING {model_name}...")
 
         if model_name == "taming":
-            if self.taming_decoder is None or recompute:
+            if self.taming_decoder is None or recompute or model_params_dict != self.taming_params:
                 logger.info("SETTING UP TAMING...")
-                self.taming_decoder = TamingDecoder(**model_params_dict, )
+                self.taming_decoder = TamingDecoder(
+                    device=device,
+                    **model_params_dict,
+                )
                 self.taming_decoder.eval()
 
             model = self.taming_decoder
-
-        elif model_name == "aphantasia":
-            if self.aphantasia is None or recompute:
-                logger.info("SETTING UP APHANTASIA...")
-                self.aphantasia = Aphantasia(**model_params_dict, )
-                self.aphantasia.eval()
-
-            model = self.aphantasia
 
         if model_name == "esrgan":
             if self.esrgan is None or recompute:
@@ -122,37 +120,29 @@ class MaskOptimizer:
             model_params_dict=model_params_dict,
         )
 
-        # text_latents_list = self.model.get_clip_text_encodings(prompt, )
-        # text_latents_list = [
-        #     text_latents.detach().to(DEVICE)
-        #     for text_latents in text_latents_list
-        # ]
-        # self.text_latents_list = text_latents_list
-
         logger.debug(f"STYLE PROMPT {style_prompt}")
         self.prompt = prompt
         self.style_prompt = style_prompt
 
-        # self.style_latents_list = None
-        # if style_prompt != "":
-        #     style_latents_list = self.model.get_clip_text_encodings(prompt, )
-        #     style_latents_list = [
-        #         style_latents.detach().to(DEVICE)
-        #         for style_latents in style_latents_list
-        #     ]
-        #     self.style_latents_list = style_latents_list
+        with torch.no_grad():
+            self.gen_latents = self.model.get_latents_from_img(cond_img, )
+            self.gen_latents = self.gen_latents.to(DEVICE)
+            self.gen_latents = self.gen_latents.detach().clone()
 
-        self.gen_latents = self.model.get_latents_from_img(cond_img, )
-        self.gen_latents = self.gen_latents.to(DEVICE)
-        self.gen_latents = self.gen_latents.detach().clone()
-        self.gen_latents.requires_grad = True
-        self.gen_latents = torch.nn.Parameter(self.gen_latents)
+            self.gen_latents.requires_grad = True
+            self.gen_latents = torch.nn.Parameter(self.gen_latents)
 
-        self.optimizer = torch.optim.AdamW(
+        # self.optimizer = torch.optim.AdamW(
+        #     params=[self.gen_latents],
+        #     lr= lr,
+        #     betas=(0.9, 0.999),
+        #     weight_decay=0.1,
+        # )
+
+        self.optimizer = torch.optim.Adam(
             params=[self.gen_latents],
             lr=lr,
             betas=(0.9, 0.999),
-            weight_decay=0.1,
         )
 
         self.rec_optimizer = torch.optim.AdamW(
@@ -208,7 +198,6 @@ class MaskOptimizer:
         loss = 0
 
         gen_img = self.model.get_img_from_latents(self.gen_latents, )
-        gen_img = (self.mask * gen_img) + (1 - self.mask) * self.cond_img
 
         if DEBUG:
             os.makedirs(
@@ -257,20 +246,23 @@ class MaskOptimizer:
                 grad_mask = torch.nn.functional.interpolate(
                     self.mask,
                     grad_size,
-                    mode="bilinear",
+                    mode="nearest",
                 )
 
-                masked_grad = grad * grad_mask
+                grad.data = grad.data * grad_mask
 
-                return masked_grad
+                return grad
 
-            gen_img_hook = gen_img.register_hook(scale_grad, )
+            gen_latents_hook = self.gen_latents.register_hook(scale_grad, )
+            # gen_img_hook = gen_img.register_hook(scale_grad, )
 
             self.optimizer.zero_grad()
             loss.backward(retain_graph=False, )
+
             self.optimizer.step()
 
-        gen_img_hook.remove()
+            gen_latents_hook.remove()
+            # gen_img_hook.remove()
 
         gen_img = torch.nn.functional.interpolate(
             gen_img,
