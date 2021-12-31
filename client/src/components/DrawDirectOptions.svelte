@@ -32,7 +32,7 @@
 </script>
 
 {#if $mode == Mode.DirectDraw && mainCanvas}
-    
+    <p> Edit the image directly.</p>
     <Slider
         name="Radius"
         bind:val={mainCanvas.radius}
