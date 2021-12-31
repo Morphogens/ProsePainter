@@ -34,7 +34,8 @@ class ModelFactory:
     def load_model(
         self,
         model_name: str,
-        model_params_dict: Dict = None,
+        device: str,
+        model_params_dict: Dict = {},
         recompute: bool = False,
     ) -> torch.nn.Module:
         """
@@ -51,18 +52,13 @@ class ModelFactory:
         if model_name == "taming":
             if self.taming_decoder is None or recompute or model_params_dict != self.taming_params:
                 logger.info("SETTING UP TAMING...")
-                self.taming_decoder = TamingDecoder(**model_params_dict, )
+                self.taming_decoder = TamingDecoder(
+                    device=device,
+                    **model_params_dict,
+                )
                 self.taming_decoder.eval()
 
             model = self.taming_decoder
-
-        elif model_name == "aphantasia":
-            if self.aphantasia is None or recompute:
-                logger.info("SETTING UP APHANTASIA...")
-                self.aphantasia = Aphantasia(**model_params_dict, )
-                self.aphantasia.eval()
-
-            model = self.aphantasia
 
         if model_name == "esrgan":
             if self.esrgan is None or recompute:

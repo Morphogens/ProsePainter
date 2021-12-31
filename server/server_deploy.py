@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import threading
+import time
 from typing import *
 
 import fastapi
@@ -25,48 +26,122 @@ from server.server_modeling_utils import (
 )
 from server.server_data_utils import base64_to_pil, pil_to_base64
 from server.server_config import CLIP_MODEL_NAME_LIST, DEBUG, DEBUG_OUT_DIR, MODEL_NAME
+from server.server_queue_utils import OptimizationManager
 
 app = fastapi.FastAPI()
 
 
 class AsyncManager:
-    """
-    Manage updates in the async loop.
-    """
     def __init__(self, ):
-        """
-        Set up async loop.
-        """
         self.async_event_loop = asyncio.Event()
-        self.async_value = None
+        self.async_value_buffer = {}
+        self.user_active_dict = {}
+        self.user_websocket_dict = {}
+
+    def add_user(
+        self,
+        user_id,
+        websocket,
+    ):
+        self.user_active_dict[user_id] = False
+        self.user_websocket_dict[user_id] = websocket
+        self.async_value_buffer[user_id] = []
+
+        logger.info(f"{user_id} ADDED!")
+
+        return
+
+    def activate_user(
+        self,
+        user_id,
+    ):
+        self.user_active_dict[user_id] = True
+
+        return
+
+    def deactivate_async_user(
+        self,
+        user_id,
+    ):
+        self.user_active_dict[user_id] = False
+
+        if user_id in self.async_value_buffer.keys():
+            self.async_value_buffer[user_id] = []
+
+        logger.info(f"{user_id} DEACTIVATED!")
+
+        return
+
+    def remove_async_user(
+        self,
+        user_id,
+    ):
+        self.user_active_dict.pop(user_id)
+        self.user_websocket_dict.pop(user_id)
+        self.async_value_buffer.pop(user_id)
+
+        logger.info(f"{user_id} REMOVED!")
+
+        return
+
+    async def wait_for_async_result(self, ):
+        await self.async_event_loop.wait()
+        self.async_event_loop.clear()
+
+        return
 
     def set_async_value(
         self,
-        async_value: Any,
-    ) -> None:
-        """
-        Set async value and send event to the event loop.
+        user_id: str,
+        async_value: Dict,
+    ):
+        if not self.user_active_dict[user_id]:
+            logger.info(f"{user_id} NOT ACTIVE")
+            return
 
-        Args:
-            async_value (Any): value to set on the async loop.
+        self.async_value_buffer[user_id].append(async_value)
+        # logger.info(f"{user_id} BUFFER UPDATED")
 
-        """
-        self.async_value = async_value
-        self.async_event_loop.set()
+        while len(self.async_value_buffer[user_id]) > 0:
+            if not self.user_active_dict[user_id]:
+                logger.info(f"{user_id} NOT ACTIVE")
+                return
 
-    async def wait(self) -> None:
-        """
-        Waits until the event loop receives an event.
+            self.async_event_loop.set()
 
-        """
-        logger.info(f"AWAITING ASYNC DATA...")
-        await self.async_event_loop.wait()
+            # logger.info(f"{user_id} SLEEPING!")
+            time.sleep(0.1)
 
-        logger.info(f"ASYNC DATA RECEIVED!")
+        return
 
-        self.async_event_loop.clear()
+    async def send_async_data(
+        self,
+        user_id,
+    ):
+        if user_id not in self.async_value_buffer.keys():
+            return
 
-        return self.async_value
+        num_elements = len(self.async_value_buffer[user_id])
+        if num_elements == 0:
+            logger.info(f"\n!!!!\n{user_id} DATA EMPTY\n!!!!\n")
+
+            return
+
+        for data_idx in range(num_elements):
+
+            await self.user_websocket_dict[user_id].send_json(
+                self.async_value_buffer[user_id].pop(0))
+
+            if not self.user_active_dict[user_id]:
+                logger.info(f"{user_id} NOT ACTIVE")
+                return
+            await asyncio.sleep(0.)
+
+        return
+
+
+async_manager = None
+optimization_manager = None
 
 
 class UserSession:
@@ -75,6 +150,7 @@ class UserSession:
     """
     def __init__(
         self,
+        user_id,
         websocket: WebSocket,
     ) -> None:
         """
@@ -88,9 +164,7 @@ class UserSession:
         self.stop_generation = False
         self.mask_optimizer = None
 
-        self.user_id = str(self.websocket['client'][1])
-
-        self.async_manager = AsyncManager()
+        self.user_id = user_id
 
     async def run(self, ) -> None:
         """
@@ -167,6 +241,18 @@ class UserSession:
             padding_percent,
         )
 
+        if crop_limits is None:
+            logger.error("No mask!")
+
+            async_manager.set_async_value(
+                self.user_id,
+                {
+                    "error": "no mask!",
+                },
+            )
+
+            return
+
         img_crop_tensor = get_crop_tensor_from_img(
             canvas_img,
             crop_limits,
@@ -179,65 +265,77 @@ class UserSession:
         )
         mask_crop_tensor = scale_crop_tensor(mask_crop_tensor)
 
-        if self.mask_optimizer is None:
-            self.mask_optimizer = MaskOptimizer(
-                prompt=prompt,
-                cond_img=img_crop_tensor,
-                mask=mask_crop_tensor,
-                lr=lr,
-                style_prompt=style_prompt,
-                model_name=MODEL_NAME,
-                model_params_dict={
-                    'clip_model_name_list': CLIP_MODEL_NAME_LIST,
-                    'model_name': model_type,
-                },
-            )
+        prompt = f"{prompt} {style_prompt}"
 
-            self.mask_optimizer.optimize_reconstruction(
-                num_iters=num_rec_steps, )
+        optimization_manager.add_job(
+            self.user_id,
+            prompt=prompt,
+            cond_img=img_crop_tensor,
+            mask=mask_crop_tensor,
+            mask_crop_tensor=mask_crop_tensor,
+            canvas_img=canvas_img,
+            crop_limits=crop_limits,
+        )
 
-        gen_img = None
-        optim_step = 0
-        while not self.stop_generation:
-            gen_img = self.mask_optimizer.optimize()
+        # if self.mask_optimizer is None:
+        #     self.mask_optimizer = MaskOptimizer(
+        #         prompt=prompt,
+        #         cond_img=img_crop_tensor,
+        #         mask=mask_crop_tensor,
+        #         lr=lr,
+        #         style_prompt=style_prompt,
+        #         model_name=MODEL_NAME,
+        #         model_params_dict={
+        #             'clip_model_name_list': CLIP_MODEL_NAME_LIST,
+        #             'model_name': model_type,
+        #         },
+        #     )
 
-            updated_canvas = merge_gen_img_into_canvas(
-                gen_img,
-                mask_crop_tensor,
-                canvas_img,
-                crop_limits,
-            )
+        #     self.mask_optimizer.optimize_reconstruction(
+        #         num_iters=num_rec_steps, )
 
-            updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas *
-                                                          255))
-            updated_canvas_uri = pil_to_base64(updated_canvas_pil)
+        # gen_img = None
+        # optim_step = 0
+        # while not self.stop_generation:
+        #     gen_img = self.mask_optimizer.optimize()
 
-            self.async_manager.set_async_value({
-                "user_id": self.user_id,
-                "image": updated_canvas_uri,
-            })
+        #     updated_canvas = merge_gen_img_into_canvas(
+        #         gen_img,
+        #         mask_crop_tensor,
+        #         canvas_img,
+        #         crop_limits,
+        #     )
 
-            if DEBUG:
-                os.makedirs(
-                    DEBUG_OUT_DIR,
-                    exist_ok=True,
-                )
+        #     updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas *
+        #                                                   255))
+        #     updated_canvas_uri = pil_to_base64(updated_canvas_pil)
 
-                gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
-                    gen_img[0])
-                gen_img_pil.save(
-                    os.path.join(
-                        DEBUG_OUT_DIR,
-                        f"{'_'.join(prompt.split())}_{optim_step}.jpg"))
+        #     self.async_manager.set_async_value({
+        #         "user_id": self.user_id,
+        #         "image": updated_canvas_uri,
+        #     })
 
-                updated_canvas_pil.save(
-                    os.path.join(
-                        DEBUG_OUT_DIR,
-                        f"canvas_{'_'.join(prompt.split())}_{optim_step}.jpg"))
+        #     if DEBUG:
+        #         os.makedirs(
+        #             DEBUG_OUT_DIR,
+        #             exist_ok=True,
+        #         )
 
-            optim_step += 1
+        #         gen_img_pil = torchvision.transforms.ToPILImage(mode="RGB")(
+        #             gen_img[0])
+        #         gen_img_pil.save(
+        #             os.path.join(
+        #                 DEBUG_OUT_DIR,
+        #                 f"{'_'.join(prompt.split())}_{optim_step}.jpg"))
 
-        return
+        #         updated_canvas_pil.save(
+        #             os.path.join(
+        #                 DEBUG_OUT_DIR,
+        #                 f"canvas_{'_'.join(prompt.split())}_{optim_step}.jpg"))
+
+        #     optim_step += 1
+
+        # return
 
     def upscale_canvas(
         self,
@@ -306,10 +404,10 @@ class UserSession:
         updated_canvas_pil = Image.fromarray(np.uint8(updated_canvas * 255))
         updated_canvas_uri = pil_to_base64(updated_canvas_pil)
 
-        self.async_manager.set_async_value({
-            "user_id": self.user_id,
-            "image": updated_canvas_uri,
-        })
+        # self.async_manager.set_async_value({
+        #     "user_id": self.user_id,
+        #     "image": updated_canvas_uri,
+        # })
 
     async def listen_loop(self, ):
         """
@@ -357,7 +455,6 @@ class UserSession:
                         "style_prompt": data_dict["stylePrompt"],
                         "padding_percent": 10.,
                         "num_rec_steps": data_dict["numRecSteps"],
-                        "model_type": data_dict["modelType"]["value"],
                     }
 
                     optimize_layer_thread = threading.Thread(
@@ -367,6 +464,8 @@ class UserSession:
                     optimize_layer_thread.start()
 
                 elif topic == "stop-generation":
+                    optimization_manager.remove_job(self.user_id, )
+                    async_manager.deactivate_async_user(self.user_id, )
                     self.stop_generation = True
 
         except Exception as e:
@@ -377,9 +476,12 @@ class UserSession:
         Handle the emission of messages to the client.
         """
         while True:
-            result_dict = await self.async_manager.wait()
-            if self.user_id == result_dict["user_id"]:
-                await self.websocket.send_json(result_dict)
+            result_dict = await async_manager.wait_for_async_result()
+            await async_manager.send_async_data(self.user_id, )
+            # if self.user_id == result_dict["user_id"]:
+            #     logger.debug("RESULT DICT")
+            #     logger.debug(result_dict)
+            #     await self.websocket.send_json(result_dict)
 
             logger.info(f"{self.user_id} ASYNC RESULTS SENT!")
 
@@ -392,11 +494,28 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
     Args:
         websocket (WebSocket): incoming websocket connection.
     """
+    user_id = str(websocket['client'][1])
+
+    global async_manager
+    if async_manager is None:
+        async_manager = AsyncManager()
+
     try:
         await websocket.accept()
         logger.info(f"WEBSOCKET CONNECTED!")
 
-        user_session = UserSession(websocket, )
+        async_manager.add_user(user_id, websocket)
+
+        global optimization_manager
+        if optimization_manager is None:
+            optimization_manager = OptimizationManager()
+            optimization_manager.async_manager = async_manager
+            optimization_manager.start()
+
+        user_session = UserSession(
+            user_id,
+            websocket,
+        )
 
         await user_session.run()
 
@@ -405,6 +524,7 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     finally:
         logger.info("WEBSOCKET DISCONNECTED.")
+        async_manager.remove_async_user(user_id, )
 
     return
 
