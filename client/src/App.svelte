@@ -187,6 +187,9 @@
 </InfiniteViewer>
 
 <style>
+    :global(*) {
+        font-family: 'Open Sans',sans-serif;  
+    }
     :global(#maskCanvas, #optPreview, #cursorCanvas, #outlineCanvas) {
         top: 0px;
         left: 0px;
@@ -209,20 +212,21 @@
         display: none;
     }
     :global(button) {
-        cursor: pointer;
-        transition-duration: 0.2s;
-        background-color: rgb(196, 196, 196);
-        color: white;
-        border: none;
-        padding: 4px 16px;
-        text-align: center;
-        text-decoration: none;
+        border: 1px solid #ccc;
         display: inline-block;
-        font-size: 16px;
-        transition-duration: 0.4s;
-        cursor: pointer;
+        padding: 6px 12px;
+        margin: 0px;
+        background-color: white;
+        
+         cursor: pointer;
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 16px;
     }
+    
     :global(button.selected) {
+        color: white;
         background-color: #4caf50; /* Green */
     }
     #content {
@@ -239,7 +243,8 @@
     }
     .viewport {
         position: relative;
-        margin: 100px;
+        margin-top: 100px;
+        margin-left: 180px;
         background: white;
         box-shadow: -1px 4px 8px 0px rgba(0, 0, 0, 0.61);
     }

@@ -143,7 +143,7 @@
         currentStrokeCtx.strokeStyle = erasing
             ? "rgba(255,255,255,1)"
             : strokeColor;
-        currentStrokeCtx.lineWidth = radius;
+        currentStrokeCtx.lineWidth = (radius - 1.9*softness);
         currentStrokeCtx.lineCap = "round";
         currentStrokeCtx.lineJoin = "round";
         currentStrokeCtx.clearRect(0, 0, width, height);
