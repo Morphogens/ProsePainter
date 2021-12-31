@@ -15,8 +15,8 @@ from loguru import logger
 from PIL import Image
 from upscaler.models import ESRGAN, ESRGANConfig
 
-from server.server_modelling import MaskOptimizer
-from server.server_modelling_utils import (
+from server.server_modeling import MaskOptimizer
+from server.server_modeling_utils import (
     process_mask,
     get_limits_from_mask,
     get_crop_tensor_from_img,
