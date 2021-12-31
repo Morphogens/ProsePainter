@@ -4,10 +4,10 @@ import { imageContour } from "./imageContour";
 export function drawGrid(
     canvasSize: number[],
     gridSize: number,
-    // colorA: string = 'lightblue',
-    // colorB: string = 'yellow'
-    colorA: string = 'white',
-    colorB: string = 'black'
+    colorA: string = 'blue',
+    colorB: string = 'yellow'
+    // colorA: string = 'white',
+    // colorB: string = 'black'
 ): [HTMLCanvasElement, CanvasRenderingContext2D] {
     const canvas: HTMLCanvasElement = document.createElement('canvas')
     canvas.width = canvasSize[0]
@@ -28,25 +28,29 @@ export function drawGrid(
     return [canvas, ctx]
 }
 
-
 function drawContours(
     maskCanvas: HTMLCanvasElement,
     dstCtx: CanvasRenderingContext2D,
-    colorA: string = 'white',
-    colorB: string = 'black'
+    // colorA: string = 'white',
+    // colorB: string = 'black',
+    colorA: string = 'blue',
+    colorB: string = 'yellow',
+    dash:number = 3
 ) {
-    const contours = imageContour(maskCanvas, maskCanvas.getContext('2d')) as number[][][]
-    dstCtx.globalAlpha = .5
+    // console.time('contours')
+    const contours = imageContour(maskCanvas)
+    // console.timeEnd('contours')
+    // dstCtx.globalAlpha = .5
     dstCtx.lineWidth = 1;
     dstCtx.lineDashOffset = 0;
     dstCtx.strokeStyle = colorA
-    dstCtx.setLineDash([3, 3]);
+    dstCtx.setLineDash([dash, dash]);
     for (const poly of contours) {
         drawLines(dstCtx, poly);
     }
-    dstCtx.lineDashOffset = 4;
+    dstCtx.lineDashOffset = dash;
     dstCtx.strokeStyle = colorB
-    dstCtx.setLineDash([4, 4]);
+    dstCtx.setLineDash([dash, dash]);
     for (const poly of contours) {
         drawLines(dstCtx, poly);
     }
@@ -60,16 +64,14 @@ export function drawMaskGridAlpha(
     gridCanvas: HTMLCanvasElement
 ) {
     dstCtx.clearRect(0, 0, canvasSize[0], canvasSize[1]);
-    dstCtx.globalAlpha = 0.4
+    dstCtx.globalAlpha = 0.6
     dstCtx.drawImage(gridCanvas, 0, 0)
     dstCtx.globalAlpha = 1.0
     dstCtx.globalCompositeOperation = "destination-in";
     dstCtx.drawImage(maskCanvas, 0, 0)
     dstCtx.globalCompositeOperation = "source-over"; // reset to default.
-
     // Draw contours
     drawContours(maskCanvas, dstCtx)
-
 }
 
 
