@@ -21,8 +21,13 @@
 
     function setEmpty() {
         canvasSize.set([width, height]);
-        const image = new Image(width, height);
-        mainCanvas.set(image);
+        const whiteCanvas = document.createElement('canvas')
+        whiteCanvas.width = width
+        whiteCanvas.height = height
+        const ctx = whiteCanvas.getContext('2d')
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, width, height)
+        mainCanvas.set(whiteCanvas)
     }
 
     async function setImageByURL(imageUrl: string) {
