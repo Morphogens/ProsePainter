@@ -1,70 +1,77 @@
 <script lang="ts">
-    import DrawCanvas from "@/drawing/DrawCanvas.svelte";
+    import type DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import { mode, canvasSize } from "@/stores";
     import { Mode } from "../types";
-    import { loadImage } from "@/utils";
+    import { loadImage, imageToCanvas, thumbnailCanvas } from "@/utils";
     import { tick } from "svelte";
+    import { MAX_IMAGE_SIZE, DEFAULT_IMAGES } from "@/constants";
     export let mainCanvas: DrawCanvas;
-    import image0Url from '../assets/startImage0.jpeg'
-    import image1Url from '../assets/startImage1.jpeg'
-    import image2Url from '../assets/startImage2.jpeg'
-    import image3Url from '../assets/startImage3.jpeg'
 
-    let defaultImageUrls = [image0Url, image1Url, image2Url, image3Url]
-    let width:number = 512
-    let height:number = 512
-
+    let width: number = 512;
+    let height: number = 512;
+    $: width = Math.min(width, MAX_IMAGE_SIZE);
+    $: height = Math.min(height, MAX_IMAGE_SIZE);
     async function onFiles(event) {
         const { files } = event.target;
         if (files.length) {
             const url = URL.createObjectURL(files[0]);
-            await setImageByURL(url)
+            await setImageByURL(url);
         }
     }
 
     function setEmpty() {
         canvasSize.set([width, height]);
-        const image = new Image(width, height)
+        const image = new Image(width, height);
         mainCanvas.set(image);
     }
 
-    async function setImageByURL(imageUrl:string) {
+    async function setImageByURL(imageUrl: string) {
         const image = await loadImage(imageUrl);
-        canvasSize.set([image.width, image.height]);
+        const canvas = thumbnailCanvas(imageToCanvas(image), MAX_IMAGE_SIZE);
+        canvasSize.set([canvas.width, canvas.height]);
         await tick(); // DrawCanvases get recreated.
-        mainCanvas.set(image);
+        mainCanvas.set(canvas);
     }
 </script>
 
 {#if $mode == Mode.SetImage && mainCanvas}
     <p>Start from an empty canvas:</p>
-    <div id='number-container'>
-        <input type="number" min="128" max="10000" bind:value={width}>
+    <div id="number-container">
+        <input type="number" min="128" max="1024" bind:value={width} />
         <p>x</p>
-        <input type="number" min="128" max="100000" bind:value={height}/>
+        <input type="number" min="128" max="1024" bind:value={height} />
     </div>
     <button on:click={setEmpty}> Create</button>
-    <br>
-    <p>Or, select an default:</p>
-    <div id='template-images'>
-        {#each defaultImageUrls as imageUrl}
-            <img src={imageUrl} on:click={() => setImageByURL(imageUrl)} alt=''>
-            
+    <!-- <Button on:click={setEmpty}>Create</Button> -->
+    <br />
+    <!-- <hr style='width:100%'> -->
+    <p>Or, select one:</p>
+    <div id="template-images">
+        {#each DEFAULT_IMAGES as imageUrl}
+            <img
+                src={imageUrl}
+                on:click={() => setImageByURL(imageUrl)}
+                alt=""
+            />
         {/each}
     </div>
-    <br>
-    <p>Or, select any image file:</p>
-    <input type="file" accept=".jpg, .jpeg, .png" on:change={onFiles} />
-    <br>
+    <br />
+    <!-- <hr style='width:100%'> -->
+    <!-- <p>Or:</p> -->
+    <label class="custom-file-upload">
+        <input type="file" accept=".jpg, .jpeg, .png" on:change={onFiles} />
+        Upload Image
+    </label>
+    <br />
 {/if}
 
 <style>
-    #number-container   {
+    #number-container {
         display: flex;
         justify-content: center;
     }
-    input[type='number'] {
-        width: 40px;
+    input[type="number"] {
+        width: 50px;
         display: inline-block;
         margin: 4px;
     }
@@ -74,6 +81,17 @@
     }
     #template-images img {
         width: 50%;
+        cursor: pointer;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+    .custom-file-upload {
+        background-color: #f8f9fa;
+        border: 1px solid #ccc;
+        display: inline-block;
+        padding: 6px 12px;
         cursor: pointer;
     }
 </style>

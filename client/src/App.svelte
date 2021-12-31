@@ -7,7 +7,7 @@
     import { mode } from "./stores";
     import startBackgroundUrl from "./assets/startImage0.jpeg";
     import downloadUrl from "./assets/download.svg";
-    import { downloadCanvas, loadImage } from "./utils";
+    import { downloadCanvas, mergeCanvas } from "./utils";
     import { Mode } from "./types";
     import {
         lastOptimizationResult,
@@ -16,7 +16,7 @@
         canvasSize,
     } from "./stores";
     import { drawCircle, drawLines } from "./drawing/drawUtils";
-    import { imageContour } from "./imageContour";
+    import { drawMaskGridAlpha, drawGrid } from "./maskDrawMethods";
 
     let mouseover = false;
     let cursorCanvas: HTMLCanvasElement;
@@ -24,6 +24,7 @@
 
     let outlineCanvas: HTMLCanvasElement;
     let outlineCtx: CanvasRenderingContext2D;
+    $: magicMaskFilter = drawGrid($canvasSize, 3);
 
     function activeDrawCanvas(): DrawCanvas {
         if ($mode == Mode.DirectDraw) {
@@ -52,7 +53,7 @@
         const [x, y] = [event.offsetX, event.offsetY];
         cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
         const canvas = activeDrawCanvas();
-        cursorCtx.lineWidth = 1;
+        cursorCtx.lineWidth = 2;
         cursorCtx.strokeStyle = "white";
         if (canvas) {
             cursorCtx.fillStyle = canvas.strokeColor;
@@ -70,18 +71,24 @@
         }
     }
 
-    function drawContours(contours: number[][][]) {
-        outlineCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
-        outlineCtx.lineWidth = 1;
-        outlineCtx.setLineDash([3, 3]);
-        for (const poly of contours) {
-            drawLines(outlineCtx, poly);
-        }
+    function onMaskCanvasStroke(data) {
+        const { ctx, canvas } = data.detail;
+        drawMaskGridAlpha(
+            outlineCtx,
+            $canvasSize as [number, number],
+            canvas,
+            magicMaskFilter[0]
+        );
     }
 
     function onMaskCanvasChange(data) {
         const { canvas, ctx } = data.detail;
-        drawContours(imageContour(canvas, ctx) as number[][][]);
+        drawMaskGridAlpha(
+            outlineCtx,
+            $canvasSize as [number, number],
+            canvas,
+            magicMaskFilter[0]
+        );
     }
 
     onMount(async () => {
@@ -120,30 +127,43 @@
             on:focus={() => (mouseover = true)}
             on:blur={() => (mouseover = false)}
         >
-            <DrawCanvas
-                width={$canvasSize[0]}
-                height={$canvasSize[1]}
-                radius={4}
-                id="mainCanvas"
-                defaultImageUrl={startBackgroundUrl}
-                bind:this={$mainCanvas}
-            />
-            <div class:hidden={$mode == Mode.DirectDraw || !mouseover}>
+            <div style="opacity:1;">
+                <!-- width={$canvasSize[0]}
+                height={$canvasSize[1]} -->
                 <DrawCanvas
-                    width={$canvasSize[0]}
-                    height={$canvasSize[1]}
-                    id="maskCanvas"
-                    on:change={onMaskCanvasChange}
-                    bind:this={$maskCanvas}
+                    {canvasSize}
+                    radius={4}
+                    id="mainCanvas"
+                    defaultImageUrl={startBackgroundUrl}
+                    bind:this={$mainCanvas}
                 />
             </div>
-            <canvas
-                id="outlineCanvas"
-                class="hiddenOverlay"
-                width={$canvasSize[0]}
-                height={$canvasSize[1]}
-                bind:this={outlineCanvas}
-            />
+            <!-- <div class:hidden={$mode == Mode.DirectDraw || !mouseover}> -->
+            <div class:hidden={$mode == Mode.DirectDraw}>
+                <div style="opacity:0;">
+                    <!-- width={$canvasSize[0]}
+                    height={$canvasSize[1]} -->
+                    <DrawCanvas
+                        radius={50}
+                        softness={10}
+                        {canvasSize}
+                        id="maskCanvas"
+                        maskFilter={magicMaskFilter[0]}
+                        on:change={onMaskCanvasChange}
+                        on:stroke={onMaskCanvasStroke}
+                        bind:this={$maskCanvas}
+                    />
+                </div>
+            </div>
+            <div class:hidden={$mode != Mode.MaskDraw}>
+                <canvas
+                    id="outlineCanvas"
+                    class="hiddenOverlay"
+                    width={$canvasSize[0]}
+                    height={$canvasSize[1]}
+                    bind:this={outlineCanvas}
+                />
+            </div>
             {#if $lastOptimizationResult}
                 <img
                     id="optPreview"
@@ -167,6 +187,9 @@
 </InfiniteViewer>
 
 <style>
+    :global(*) {
+        font-family: 'Open Sans',sans-serif;  
+    }
     :global(#maskCanvas, #optPreview, #cursorCanvas, #outlineCanvas) {
         top: 0px;
         left: 0px;
@@ -189,20 +212,21 @@
         display: none;
     }
     :global(button) {
-        cursor: pointer;
-        transition-duration: 0.2s;
-        background-color: rgb(196, 196, 196);
-        color: white;
-        border: none;
-        padding: 4px 16px;
-        text-align: center;
-        text-decoration: none;
+        border: 1px solid #ccc;
         display: inline-block;
-        font-size: 16px;
-        transition-duration: 0.4s;
-        cursor: pointer;
+        padding: 6px 12px;
+        margin: 0px;
+        background-color: white;
+        
+         cursor: pointer;
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 16px;
     }
+    
     :global(button.selected) {
+        color: white;
         background-color: #4caf50; /* Green */
     }
     #content {
@@ -219,7 +243,8 @@
     }
     .viewport {
         position: relative;
-        margin: 100px;
+        margin-top: 100px;
+        margin-left: 180px;
         background: white;
         box-shadow: -1px 4px 8px 0px rgba(0, 0, 0, 0.61);
     }

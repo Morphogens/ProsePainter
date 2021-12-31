@@ -1,11 +1,11 @@
 <script lang="ts">
-    import DrawCanvas from "@/drawing/DrawCanvas.svelte";
+    import type DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import { mode } from "@/stores";
     import * as optEvents from "../optimizeEvents";
     import { Mode } from "../types";
     import DrawMaskOptions from "./DrawMaskOptions.svelte";
     import DrawDirectOptions from "./DrawDirectOptions.svelte";
-import SetImageOptions from "./SetImageOptions.svelte";
+    import SetImageOptions from "./SetImageOptions.svelte";
     export let maskCanvas: DrawCanvas;
     export let mainCanvas: DrawCanvas;
     $: console.log('mode=', $mode);
@@ -20,7 +20,7 @@ import SetImageOptions from "./SetImageOptions.svelte";
         >
         <button
             class:selected={$mode == Mode.DirectDraw}
-            on:click={(e) => ($mode = Mode.DirectDraw)}><p>Draw</p></button
+            on:click={(e) => ($mode = Mode.DirectDraw)}><p>Sketch</p></button
         >
         <button
             class:selected={$mode == Mode.MaskDraw}
@@ -35,20 +35,20 @@ import SetImageOptions from "./SetImageOptions.svelte";
 
     {#if $mode == Mode.Optimizing}
         <button on:click={() => optEvents.pause()}>
-            <h4>Stop</h4>
+            <p>Stop</p>
         </button>
     {:else if $mode == Mode.PausedOptimizing}
         <button on:click={() => optEvents.accept()}>
-            <h4>Accept</h4>
+            <p>Accept</p>
         </button>
         <button on:click={() => optEvents.discard()}>
-            <h4>Discard</h4>
+            <p>Discard</p>
         </button>
-        <button on:click={() => optEvents.upscale()}>
-            <h4>Upscale</h4>
-        </button>
+        <!-- <button on:click={() => optEvents.upscale()}>
+            <p>Upscale</p>
+        </button> -->
         <button on:click={() => optEvents.resume()}>
-            <h4>Resume</h4>
+            <p>Resume</p>
         </button>
     {/if}
     <!-- {/if} -->
@@ -58,16 +58,20 @@ import SetImageOptions from "./SetImageOptions.svelte";
     #optionPanel {
         position: fixed;
         left: 0px;
-        top: 60px;
+        top: 69px;
         z-index: 2;
-        width: 128px;
+        width: 150px;
         display: flex;
         flex-direction: column;
         background: white;
         border-top-right-radius: 4px;
         border-bottom-right-radius: 4px;
         align-items: center;
-        border: 1px solid;
+        overflow: hidden;
+    }
+    #optionPanel button {
+        border-bottom: 1px solid;
+        width: 100%
     }
     #modeToggle {
         position: fixed;
@@ -75,10 +79,24 @@ import SetImageOptions from "./SetImageOptions.svelte";
         left: 0px;
         background: white;
         z-index: 1;
+        display: flex;
+    }
+    #modeToggle > button  {
+        display: inline-block;
+        padding: none;
+        margin: 0px;
     }
     :global(button > img) {
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
+        margin: 0px;
+
+        user-drag: none;
+        -webkit-user-drag: none;
+        user-select: none;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
     }
     :global(button.selected) {
         background: #ffa50080;
