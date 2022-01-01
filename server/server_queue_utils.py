@@ -20,8 +20,8 @@ model_factory = ModelFactory()
 class OptimizationManager:
     def __init__(
         self,
-        batch_size=8,
-        max_wait: float = 5,
+        batch_size=16,
+        max_wait: float = 1,
         device: str = "cuda:0",
     ):
         self.batch_size = batch_size
@@ -31,7 +31,7 @@ class OptimizationManager:
         self.job_list = []
         self.num_iterations = 20
         self.lr = 0.3
-        self.resolution = (224, 224)
+        self.resolution = (256, 256)
         self.num_crops = 8
         self.num_accum_steps = 1
 
@@ -108,6 +108,18 @@ class OptimizationManager:
 
             logger.info(f"TIME WAITED {time_waited}/{self.max_wait} SECONDS")
 
+            # for job in self.job_list:
+            #     user_id = job["user_id"]
+
+            #     self.async_manager.set_async_value(
+            #         user_id,
+            #         {
+            #             "message": "error",
+            #             "user_id": user_id,
+            #             "image": updated_canvas_uri,
+            #         },
+            #     )
+
             current_num_jobs = len(self.job_list)
             if current_num_jobs >= self.batch_size or time_waited > self.max_wait:
                 t = None
@@ -178,6 +190,7 @@ class OptimizationManager:
             betas=(0.9, 0.999),
         )
 
+        step = 0
         for _iter_idx in range(self.num_iterations):
             for _accum_idx in range(self.num_accum_steps):
                 gen_img = self.generator.get_img_from_latents(
@@ -208,6 +221,8 @@ class OptimizationManager:
             optimizer.step()
             optimizer.zero_grad()
 
+            step += 1
+
             optim_job_list = [
                 job for job in optim_job_list
                 if self.async_manager.user_active_dict[job["user_id"]]
@@ -217,10 +232,28 @@ class OptimizationManager:
                 mask_crop_tensor = user_params["mask_crop_tensor"]
                 canvas_img = user_params["canvas_img"]
                 crop_limits = user_params["crop_limits"]
+                cond_img = user_params["cond_img"]
+
+                cond_img_h = cond_img.shape[2]
+                cond_img_w = cond_img.shape[3]
+                pad_scale = max(self.resolution) / max(cond_img_h, cond_img_w)
+                x_pad_percent = 1 / min(1, cond_img_w / cond_img_h)
+                y_pad_percent = 1 / min(1, cond_img_h / cond_img_w)
+                x_pad_size = pad_scale * cond_img_w * (x_pad_percent - 1)
+                y_pad_size = pad_scale * cond_img_h * (y_pad_percent - 1)
 
                 with torch.no_grad():
                     img_rec = self.generator.get_img_from_latents(
                         batched_latents[user_idx, :][None, :], )
+
+                img_rec_h = img_rec.shape[2]
+                img_rec_w = img_rec.shape[3]
+
+                img_rec = img_rec[:, :,
+                                  int(y_pad_size /
+                                      2):img_rec_h - int(y_pad_size / 2),
+                                  int(x_pad_size / 2):img_rec_w -
+                                  int(x_pad_size / 2), ]
 
                 updated_canvas = merge_gen_img_into_canvas(
                     img_rec,
@@ -236,8 +269,10 @@ class OptimizationManager:
                 self.async_manager.set_async_value(
                     user_id,
                     {
+                        "message": "gen-results",
                         "user_id": user_id,
                         "image": updated_canvas_uri,
+                        "step": f"{step}/{self.num_iterations}"
                     },
                 )
 
