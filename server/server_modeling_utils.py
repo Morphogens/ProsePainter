@@ -37,7 +37,7 @@ def process_mask(
 
 def get_limits_from_mask(
     mask: np.ndarray,
-    padding_percent: int = 10,
+    padding_percent: int = 5,
 ) -> Tuple:
     """
     Use mask to extract vertical and horizontal limits where values are different than 0.
