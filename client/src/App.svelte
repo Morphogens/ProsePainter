@@ -197,6 +197,7 @@
 <style>
     :global(*) {
         font-family: 'Open Sans',sans-serif;  
+        box-sizing: border-box;
     }
     :global(#maskCanvas, #optPreview, #cursorCanvas, #outlineCanvas) {
         top: 0px;

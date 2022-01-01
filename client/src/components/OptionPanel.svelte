@@ -60,7 +60,7 @@
         left: 0px;
         top: 69px;
         z-index: 2;
-        width: 150px;
+        width: 151px;
         display: flex;
         flex-direction: column;
         background: white;
