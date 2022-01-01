@@ -17,6 +17,7 @@
     } from "./stores";
     import { drawCircle, drawLines } from "./drawing/drawUtils";
     import { drawMaskGridAlpha, drawGrid } from "./maskDrawMethods";
+    import InfoModal from "./components/InfoModal.svelte";
 
     let mouseover = false;
     let cursorCanvas: HTMLCanvasElement;
@@ -25,6 +26,7 @@
     let outlineCanvas: HTMLCanvasElement;
     let outlineCtx: CanvasRenderingContext2D;
     $: magicMaskFilter = drawGrid($canvasSize, 3);
+    let modal: InfoModal
 
     function activeDrawCanvas(): DrawCanvas {
         if ($mode == Mode.DirectDraw) {
@@ -105,11 +107,21 @@
 {#if $mode == Mode.DirectDraw || $mode == Mode.MaskDraw}
     <button
         id="downloadButton"
+        class='roundCornerButton'
         on:click={(e) => downloadCanvas($mainCanvas.getCanvas())}
     >
         <img src={downloadUrl} alt="download" />
     </button>
 {/if}
+
+<InfoModal bind:this={modal}/>
+<button
+    id="helpButton"
+    class='roundCornerButton'
+    on:click={(e) => modal.toggle()}
+>
+    ?
+</button>
 
 <InfiniteViewer
     className="viewer"
@@ -128,8 +140,6 @@
             on:blur={() => (mouseover = false)}
         >
             <div style="opacity:1;">
-                <!-- width={$canvasSize[0]}
-                height={$canvasSize[1]} -->
                 <DrawCanvas
                     {canvasSize}
                     radius={4}
@@ -141,8 +151,6 @@
             <!-- <div class:hidden={$mode == Mode.DirectDraw || !mouseover}> -->
             <div class:hidden={$mode == Mode.DirectDraw}>
                 <div style="opacity:0;">
-                    <!-- width={$canvasSize[0]}
-                    height={$canvasSize[1]} -->
                     <DrawCanvas
                         radius={50}
                         softness={.2}
@@ -251,19 +259,22 @@
     .hidden {
         display: none;
     }
-    #downloadButton {
+    .roundCornerButton {
         position: fixed;
-        right: 10px;
         bottom: 10px;
         z-index: 1;
         background: white;
         border-radius: 50%;
-        width: 50px;
-        height: 50px;
+        width: 48px;
+        height: 48px;
         padding: 8px;
     }
-    #downloadButton img {
+    .roundCornerButton img {
         width: 100%;
         height: 100%;
+    }
+    #downloadButton {
+        right: 10px;
+        
     }
 </style>
