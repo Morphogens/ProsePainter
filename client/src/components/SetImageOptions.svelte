@@ -21,8 +21,13 @@
 
     function setEmpty() {
         canvasSize.set([width, height]);
-        const image = new Image(width, height);
-        mainCanvas.set(image);
+        const whiteCanvas = document.createElement('canvas')
+        whiteCanvas.width = width
+        whiteCanvas.height = height
+        const ctx = whiteCanvas.getContext('2d')
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, width, height)
+        mainCanvas.set(whiteCanvas)
     }
 
     async function setImageByURL(imageUrl: string) {
@@ -88,7 +93,7 @@
         display: none;
     }
     .custom-file-upload {
-        background-color: #f8f9fa;
+        /* background-color: #f8f9fa; */
         border: 1px solid #ccc;
         display: inline-block;
         padding: 6px 12px;

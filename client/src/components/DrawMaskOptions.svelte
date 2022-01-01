@@ -13,26 +13,23 @@
     import { Mode } from "../types";
     import Slider from "./Slider.svelte";
     export let maskCanvas: DrawCanvas;
-    let seeAdvanced = false
-    import Select from 'svelte-select';
+    // let seeAdvanced = false
+    import Select from "svelte-select";
 
-    const modelTypes = ['imagenet-16384', 'openimages-8192'];
+    const urlParams = new URLSearchParams(window.location.search);
+    const seeAdvanced = parseInt(urlParams.get("advanced") || "0") == 1;
 
+    const modelTypes = ["imagenet-16384", "openimages-8192"];
 </script>
 
 {#if $mode == Mode.MaskDraw && maskCanvas}
     <p>What would you like to draw?</p>
-    <!-- <input type="text" minlength="3" bind:value={$prompt} /> -->
     <textarea rows="3" class="auto_height" bind:value={$prompt} />
-
-    <!-- <p>In what style?</p>
-    <input type="text" placeholder="Default" bind:value={$stylePrompt} /> -->
     <div class="button-group">
         <button
             on:click={() => (maskCanvas.erasing = false)}
             class:selected={!maskCanvas.erasing}
         >
-            <!-- style="width:80%;" -->
             <img src="/images/brush.svg" alt="draw-mask" />
         </button>
         <button
@@ -49,9 +46,19 @@
         max={96}
         step={1}
     />
-    <Slider name="Softness" bind:val={maskCanvas.softness} max={20} step={1} />
-    <button on:click={() => maskCanvas.clear()}> Clear </button>
-    
+    <Slider
+        name="Softness"
+        bind:val={maskCanvas.softness}
+        max={1}
+        step={0.05}
+    />
+
+    <button
+        style="margin:6px;margin-bottom:14px;"
+        on:click={() => maskCanvas.clear()}
+    >
+        Clear
+    </button>
     {#if seeAdvanced}
         <Slider
             name="Learn Rate"
@@ -60,31 +67,22 @@
             max={500}
             step={10}
         />
-        <Slider
-            name="Rec. Steps"
-            bind:val={$numRecSteps}
-            max={64}
-            step={4}
-        />
-        <!-- Model Type
-        <Select style="width:100%" items={modelTypes} bind:value={$modelType}></Select> -->
-
+        <Slider name="Rec. Steps" bind:val={$numRecSteps} max={64} step={4} />
+        <!-- Model Type -->
+        <Select style="width:100%" items={modelTypes} bind:value={$modelType} />
+        <!-- 
         <p class="advanced" on:click={() => (seeAdvanced = false)}>
             Hide Advanced
-        </p>
-
+        </p> -->
     {:else}
-        <p class="advanced" on:click={() => (seeAdvanced = true)}>Advanced</p>
+        <!-- <p class="advanced" on:click={() => (seeAdvanced = true)}>Advanced</p> -->
     {/if}
     {#if $socketOpen}
         <button
             on:click={() => optEvents.start()}
             style="width:100%;background-color: #4caf50;border:none;font-size:20px;"
         >
-        Start
-            <!-- <h4 style=margin:12px;> -->
-
-            <!-- </h4> -->
+            Start
         </button>
     {:else}
         <button on:click={() => alert("SOCKET NOT CONNECTED :(")}>
@@ -104,11 +102,11 @@
     .button-group button {
         border: 0px;
     }
-    .advanced {
+    /* .advanced {
         cursor: pointer;
         text-decoration: underline;
         margin: 16px !important;
-    }
+    } */
     textarea {
         resize: none;
         width: 90%;
