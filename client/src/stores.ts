@@ -1,3 +1,4 @@
+import type { OptimizationResult } from './types'
 import { Mode } from './types'
 import { writable } from 'svelte/store'
 import type { Writable } from 'svelte/store'
@@ -8,12 +9,13 @@ export const stylePrompt = localStorageWritable('stylePrompt', '')
 export const learningRate = localStorageWritable('learningRate', 250)
 export const numRecSteps = localStorageWritable('numRecSteps', 0)
 export const modelType = localStorageWritable("modelType", "imagenet-16384")
-// export const mode = localStorageWritable('mode', Mode.MaskDraw as Mode)
 export const mode = writable(Mode.MaskDraw as Mode)
 export const canvasSize = localStorageWritable('canvasSize', [512, 512])
-export const lastOptimizationResult = writable(null as null | HTMLImageElement)
 export const mainCanvas = writable(null as null | DrawCanvas)
 export const maskCanvas = writable(null as null | DrawCanvas)
+
+
+export const lastOptimizationResult = writable(null as null | OptimizationResult)
 
 function localStorageWritable<T>(name:string, defaultValue:T):Writable<T>{
     // Svelte store that persists to localStorage.

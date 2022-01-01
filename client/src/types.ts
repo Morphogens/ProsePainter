@@ -6,3 +6,9 @@ export enum Mode {
     Optimizing,
     PausedOptimizing,
 }
+
+export interface OptimizationResult {
+    step: number,
+    num_iterations: number,
+    image: HTMLImageElement
+}

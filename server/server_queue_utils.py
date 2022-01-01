@@ -272,7 +272,9 @@ class OptimizationManager:
                         "message": "gen-results",
                         "user_id": user_id,
                         "image": updated_canvas_uri,
-                        "step": f"{step}/{self.num_iterations}"
+                        "step": step,
+                        "num_iterations": self.num_iterations,
+                        # "step": f"{step}/{self.num_iterations}"
                     },
                 )
 

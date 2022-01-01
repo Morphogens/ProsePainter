@@ -1,10 +1,10 @@
 <script lang="ts">
     import type DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import { mode } from "@/stores";
-    import * as optEvents from "../optimizeEvents";
     import { Mode } from "../types";
     import DrawMaskOptions from "./DrawMaskOptions.svelte";
     import DrawDirectOptions from "./DrawDirectOptions.svelte";
+    import OptimizeOptions from './OptimizeOptions.svelte'
     import SetImageOptions from "./SetImageOptions.svelte";
     export let maskCanvas: DrawCanvas;
     export let mainCanvas: DrawCanvas;
@@ -32,26 +32,7 @@
     <SetImageOptions {mainCanvas} />
     <DrawMaskOptions {maskCanvas} />
     <DrawDirectOptions {mainCanvas} />
-
-    {#if $mode == Mode.Optimizing}
-        <button on:click={() => optEvents.pause()}>
-            <p>Stop</p>
-        </button>
-    {:else if $mode == Mode.PausedOptimizing}
-        <button on:click={() => optEvents.accept()}>
-            <p>Accept</p>
-        </button>
-        <button on:click={() => optEvents.discard()}>
-            <p>Discard</p>
-        </button>
-        <!-- <button on:click={() => optEvents.upscale()}>
-            <p>Upscale</p>
-        </button> -->
-        <button on:click={() => optEvents.resume()}>
-            <p>Resume</p>
-        </button>
-    {/if}
-    <!-- {/if} -->
+    <OptimizeOptions />
 </div>
 
 <style>
@@ -70,10 +51,6 @@
         border-bottom: 1px solid #ccc;
         align-items: center;
         overflow: hidden;
-    }
-    #optionPanel button {
-        border-bottom: 1px solid;
-        width: 100%
     }
     #modeToggle {
         position: fixed;
