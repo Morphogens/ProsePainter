@@ -18,9 +18,9 @@ jobs:
         with:
           context: .
           load: true
-          tags: "prosepainter:latest"
+          tags: "prosepainter:${{ github.sha }} "
           cache-from: type=gha
           cache-to: type=gha
 
       - name: Test
-        run: docker run docker.io/library/prosepainter:latest conda run --no-capture-output -n prosepaint python /server/server_test.py
+        run: docker run docker.io/library/prosepainter:${{ github.sha }}  conda run --no-capture-output -n prosepaint python /server/server_test.py
