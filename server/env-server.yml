@@ -18,3 +18,4 @@ dependencies:
     - loguru==0.5.3
     - upscaler==0.0.5
     - geniverse==0.1.6
+    - requests==2.26.0
