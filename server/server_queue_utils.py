@@ -173,6 +173,7 @@ class OptimizationManager:
                 mode="bilinear",
             )
 
+            with torch.no_grad():
             latents = self.generator.get_latents_from_img(cond_img, )
 
             latents_list.append(latents)
@@ -181,7 +182,7 @@ class OptimizationManager:
             user_prompt_list, )
 
         batched_latents = torch.cat(latents_list, ).to(self.device)
-        batched_latents = batched_latents.to(self.device)
+        batched_latents = batched_latents.detach()
         batched_latents = torch.nn.Parameter(batched_latents)
 
         optimizer = torch.optim.Adam(
@@ -227,6 +228,7 @@ class OptimizationManager:
                 job for job in optim_job_list
                 if self.async_manager.user_active_dict[job["user_id"]]
             ]
+
             for user_idx, user_params in enumerate(optim_job_list):
                 user_id = user_params["user_id"]
                 mask_crop_tensor = user_params["mask_crop_tensor"]
