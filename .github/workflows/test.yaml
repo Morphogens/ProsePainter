@@ -6,11 +6,8 @@ jobs:
   build:
     name: Build and push docker image
     runs-on: ubuntu-latest
-
-    # Limit concurrency in case it helps with failed docker builds
-    # concurrency: build
-
     steps:
+      # See https://github.com/easimon/maximize-build-space
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
         with:
