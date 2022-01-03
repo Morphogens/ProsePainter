@@ -14,15 +14,14 @@ jobs:
           environment-file: server/env-server.yml
           python-version: 3.7
           auto-activate-base: false
-      - shell: bash -l {0}
+      - name: Print conda info
+        shell: bash -l {0}
         run: |
           conda info
           conda list
-      - shell: bash -l {0}
-        run: |
-          conda info
-          conda list
-          conda run --no-capture-output -n prosepaint python server/server_test.py
+      - name: Run server tests
+        shell: bash -l {0}
+        run: conda run --no-capture-output -n prosepaint python server/server_test.py
 
   build:
     name: Build and push ProsePainter docker image
