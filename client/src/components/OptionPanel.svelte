@@ -24,7 +24,7 @@
         >
         <button
             class:selected={$mode == Mode.MaskDraw}
-            on:click={(e) => ($mode = Mode.MaskDraw)}><p>Magic Draw</p></button
+            on:click={(e) => ($mode = Mode.MaskDraw)}><p>Magic Ink</p></button
         >
     </div>
 {/if}

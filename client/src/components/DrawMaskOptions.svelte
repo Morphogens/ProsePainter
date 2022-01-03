@@ -23,8 +23,9 @@
 </script>
 
 {#if $mode == Mode.MaskDraw && maskCanvas}
-    <p>What would you like to draw?</p>
+    <p>Describe your magic ink.</p>
     <textarea rows="3" class="auto_height" bind:value={$prompt} />
+    <p>Apply it to the canvas.</p>
     <div class="button-group">
         <button
             on:click={() => (maskCanvas.erasing = false)}
