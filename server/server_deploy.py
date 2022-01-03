@@ -185,7 +185,7 @@ class UserSession:
         mask: str,
         lr: float = 0.5,
         style_prompt: str = "",
-        padding_percent: float = 5.,
+        padding_percent: float = 10.,
         num_rec_steps: int = 16,
         model_type: str = "imagenet-16384",
         **kwargs,

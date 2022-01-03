@@ -19,7 +19,7 @@ model_factory = ModelFactory()
 class OptimizationManager:
     def __init__(
         self,
-        batch_size=16,
+        batch_size=8,
         max_wait: float = 1,
     ):
         self.batch_size = batch_size
@@ -27,10 +27,10 @@ class OptimizationManager:
 
         self.job_list = []
         self.num_iterations = 20
-        self.lr = 0.2
-        self.resolution = (448, 448)
+        self.lr = 0.15
+        self.resolution = (400, 400)
         self.num_crops = 64
-        self.num_accum_steps = 4
+        self.num_accum_steps = 1
 
         self.num_crops = max(
             1,
@@ -46,16 +46,17 @@ class OptimizationManager:
 
         self.generator_dict = {}
         for cuda_idx in range(self.num_devices):
-            self.generator_dict[f"cuda:{cuda_idx}"] = model_factory.load_model(
+            generator = model_factory.load_model(
                 self.model_name,
                 device=f"cuda:{cuda_idx}",
                 model_params_dict={
                     "clip_model_name_list": [
                         "ViT-B/32",
-                        "ViT-B/16",
+                        #"ViT-B/16",
                     ]
                 },
             )
+            self.generator_dict[f"cuda:{cuda_idx}"] = generator.to(f"cuda:{cuda_idx}")
 
     def start(self, ):
         Thread(target=self.taming_worker, ).start()
@@ -132,22 +133,30 @@ class OptimizationManager:
             if current_num_jobs >= self.batch_size or time_waited > self.max_wait:
                 t = None
 
-                if current_num_jobs == 0:
-                    continue
-
-                logger.info("BATCHING!!!")
-
                 for cuda_idx in range(self.num_devices):
-                    jobs_to_optimize = self.job_list[
-                        0:min(self.batch_size, current_num_jobs)]
+                    if current_num_jobs == 0:
+                        continue
 
-                    self.job_list = self.job_list[
-                        min(self.batch_size, current_num_jobs)::]
+                    logger.info(f"BATCHING!!! in machine {cuda_idx}")
 
-                    self.batched_optimization(
-                        jobs_to_optimize,
-                        device=f"cuda:{cuda_idx}",
-                    )
+                    try:
+                        limit_job_idx = max(1, min(int(self.batch_size / self.num_devices), current_num_jobs))
+                        jobs_to_optimize = self.job_list[0:limit_job_idx]
+                        self.job_list = self.job_list[limit_job_idx::]
+                        
+                        self.batched_optimization(
+                            jobs_to_optimize,
+                            device=f"cuda:{cuda_idx}",
+                        )
+
+                    except Exception as e:
+                        logger.error("ERROR IN BATCHED OPTIMIZATION!!")
+                        logger.error(repr(e))
+
+                    torch.cuda.empty_cache()
+                    gc.collect()
+
+                    current_num_jobs = len(self.job_list)
 
     def batched_optimization(
         self,
@@ -163,6 +172,7 @@ class OptimizationManager:
             user_prompt_list.append(prompt)
 
             cond_img = user_params["cond_img"]
+            cond_img = cond_img.to(device)
 
             cond_img_h = cond_img.shape[2]
             cond_img_w = cond_img.shape[3]
@@ -180,7 +190,7 @@ class OptimizationManager:
                     int(y_pad_size / 2),
                 ),
                 mode='constant',
-                value=0,
+                value=torch.tensor(0).to(device),
             )
 
             cond_img = torch.nn.functional.interpolate(
@@ -272,7 +282,7 @@ class OptimizationManager:
                                   int(x_pad_size / 2), ]
 
                 updated_canvas = merge_gen_img_into_canvas(
-                    img_rec,
+                    img_rec.to("cuda:0"),
                     mask_crop_tensor,
                     canvas_img,
                     crop_limits,
@@ -296,3 +306,8 @@ class OptimizationManager:
 
             torch.cuda.empty_cache()
             gc.collect()
+
+        del optimizer
+        del batched_latents
+        torch.cuda.empty_cache()
+        gc.collect()
