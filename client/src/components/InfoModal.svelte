@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
-    export let show = true;
+    export let show = false;
 
     export function toggle() {
         show = !show;
@@ -20,9 +20,9 @@
         <div class="modal-content">
             <h4>ProsePainter-<i>Beta</i></h4>
             <p>
-                ProsePainter is a new way to digitally paint! You
-                create 'magic-ink' from any word or sentence and apply it to an image. It is
-                powered by machine-learning.
+                ProsePainter is a new way to digitally paint! You create
+                'magic-ink' from any word or sentence and apply it to an image.
+                It is powered by machine-learning.
             </p>
 
             <h4>Tutorial</h4>
@@ -64,8 +64,8 @@
         background-color: white;
         cursor: default;
         border: 1px solid #ccc;
-        padding-left: 20px;
-        padding-right: 20px;
+        padding-left: 30px;
+        padding-right: 30px;
     }
     h4,
     p {

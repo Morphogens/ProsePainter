@@ -176,7 +176,7 @@
                 <img
                     id="optPreview"
                     class="hiddenOverlay"
-                    src={$lastOptimizationResult.src}
+                    src={$lastOptimizationResult.image.src}
                     alt=""
                 />
             {/if}
@@ -197,6 +197,7 @@
 <style>
     :global(*) {
         font-family: 'Open Sans',sans-serif;  
+        box-sizing: border-box;
     }
     :global(#maskCanvas, #optPreview, #cursorCanvas, #outlineCanvas) {
         top: 0px;
@@ -224,13 +225,20 @@
         display: inline-block;
         padding: 6px 12px;
         margin: 0px;
-        background-color: white;
+        /* background-color: white; */
+        background-color: #f8f9fa;
+        opacity: 1.0;
         
          cursor: pointer;
          text-align: center;
          text-decoration: none;
          display: inline-block;
          font-size: 16px;
+    }
+    :global(button:hover) {
+        /* opacity: 0.8; */
+        background-color: #f8f9fa79;
+        /* border: 1px solid black; */
     }
     
     :global(button.selected) {

@@ -85,10 +85,7 @@
             Start
         </button>
     {:else}
-        <button on:click={() => alert("SOCKET NOT CONNECTED :(")}>
-            Start
-        </button>
-        <p>Socket not open</p>
+        <p>Unable to connect to server...</p>
     {/if}
 {/if}
 

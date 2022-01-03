@@ -93,7 +93,7 @@
         display: none;
     }
     .custom-file-upload {
-        /* background-color: #f8f9fa; */
+        background-color: #f8f9fa;
         border: 1px solid #ccc;
         display: inline-block;
         padding: 6px 12px;
