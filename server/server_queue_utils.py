@@ -31,7 +31,7 @@ class OptimizationManager:
         self.num_iterations = 20
         self.lr = 0.2
         self.resolution = (448, 448)
-        self.num_crops = 32
+        self.num_crops = 64
         self.num_accum_steps = 4
 
         self.num_crops = max(
