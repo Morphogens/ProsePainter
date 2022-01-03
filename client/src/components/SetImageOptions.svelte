@@ -55,6 +55,7 @@
         {#each DEFAULT_IMAGES as imageUrl}
             <img
                 src={imageUrl}
+                draggable="false"
                 on:click={() => setImageByURL(imageUrl)}
                 alt=""
             />

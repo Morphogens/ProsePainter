@@ -13,6 +13,7 @@
     export let opacity = 3;
     export let softness = .2;
     export let erasing = false;
+    export let showCursor = true;
     export let canvasBase64: string | null = null;
     export let strokeColor = "#000000";
     export let defaultImageUrl: string | null = null;
@@ -174,6 +175,7 @@
 <div
     {id}
     class="canvasesContainer"
+    style="cursor:{showCursor ? 'initial' : 'none'}"
     on:mousedown={() => (mouseDown = true)}
     on:mouseup={() => strokeDone()}
     on:mouseleave={() => strokeDone()}
@@ -191,7 +193,6 @@
 <style>
     .canvasesContainer {
         position: relative;
-        cursor: none;
     }
     #currentStrokeCanvas {
         position: absolute;

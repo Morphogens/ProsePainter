@@ -5,7 +5,7 @@
     import DrawCanvas from "@/drawing/DrawCanvas.svelte";
     import OptionPanel from "@/components/OptionPanel.svelte";
     import { mode } from "./stores";
-    import startBackgroundUrl from "./assets/startImage0.jpeg";
+    // import startBackgroundUrl from "./assets/startImage0.jpeg";
     import downloadUrl from "./assets/download.svg";
     import { downloadCanvas, mergeCanvas } from "./utils";
     import { Mode } from "./types";
@@ -18,6 +18,7 @@
     import { drawCircle, drawLines } from "./drawing/drawUtils";
     import { drawMaskGridAlpha, drawGrid } from "./maskDrawMethods";
     import InfoModal from "./components/InfoModal.svelte";
+    import { DEFAULT_IMAGES } from './constants'
 
     let mouseover = false;
     let cursorCanvas: HTMLCanvasElement;
@@ -26,7 +27,7 @@
     let outlineCanvas: HTMLCanvasElement;
     let outlineCtx: CanvasRenderingContext2D;
     $: magicMaskFilter = drawGrid($canvasSize, 3);
-    let modal: InfoModal
+    let modal: InfoModal;
 
     function activeDrawCanvas(): DrawCanvas {
         if ($mode == Mode.DirectDraw) {
@@ -54,19 +55,15 @@
     function onMouseMove(event) {
         const [x, y] = [event.offsetX, event.offsetY];
         cursorCtx.clearRect(0, 0, $canvasSize[0], $canvasSize[1]);
+        if ($mode == Mode.SetImage) {
+            return;
+        }
         const canvas = activeDrawCanvas();
         cursorCtx.lineWidth = 2;
         cursorCtx.strokeStyle = "white";
         if (canvas) {
             cursorCtx.fillStyle = canvas.strokeColor;
-            drawCircle(
-                cursorCtx,
-                x,
-                y,
-                canvas.radius,
-                true,
-                true
-            );
+            drawCircle(cursorCtx, x, y, canvas.radius, true, true);
         } else {
             cursorCtx.fillStyle = "black";
             drawCircle(cursorCtx, x, y, 2, true, true);
@@ -107,17 +104,17 @@
 {#if $mode == Mode.DirectDraw || $mode == Mode.MaskDraw}
     <button
         id="downloadButton"
-        class='roundCornerButton'
+        class="roundCornerButton"
         on:click={(e) => downloadCanvas($mainCanvas.getCanvas())}
     >
         <img src={downloadUrl} alt="download" />
     </button>
 {/if}
 
-<InfoModal bind:this={modal}/>
+<InfoModal bind:this={modal} />
 <button
     id="helpButton"
-    class='roundCornerButton'
+    class="roundCornerButton"
     on:click={(e) => modal.toggle()}
 >
     ?
@@ -144,19 +141,20 @@
                     {canvasSize}
                     radius={4}
                     id="mainCanvas"
-                    defaultImageUrl={startBackgroundUrl}
+                    defaultImageUrl={DEFAULT_IMAGES[1]}
+                    showCursor={$mode == Mode.SetImage}
                     bind:this={$mainCanvas}
                 />
             </div>
-            <!-- <div class:hidden={$mode == Mode.DirectDraw || !mouseover}> -->
             <div class:hidden={$mode == Mode.DirectDraw}>
                 <div style="opacity:0;">
                     <DrawCanvas
                         radius={50}
-                        softness={.2}
+                        softness={0.2}
                         {canvasSize}
                         id="maskCanvas"
                         maskFilter={magicMaskFilter[0]}
+                        showCursor={$mode == Mode.SetImage}
                         on:change={onMaskCanvasChange}
                         on:stroke={onMaskCanvasStroke}
                         bind:this={$maskCanvas}
@@ -196,7 +194,7 @@
 
 <style>
     :global(*) {
-        font-family: 'Open Sans',sans-serif;  
+        font-family: "Open Sans", sans-serif;
         box-sizing: border-box;
     }
     :global(#maskCanvas, #optPreview, #cursorCanvas, #outlineCanvas) {
@@ -205,7 +203,7 @@
         position: absolute;
     }
     .hiddenOverlay {
-        cursor: none;
+        /* cursor: none; */
         pointer-events: none;
     }
     /* #debugMask  {
@@ -227,20 +225,20 @@
         margin: 0px;
         /* background-color: white; */
         background-color: #f8f9fa;
-        opacity: 1.0;
-        
-         cursor: pointer;
-         text-align: center;
-         text-decoration: none;
-         display: inline-block;
-         font-size: 16px;
+        opacity: 1;
+
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
     }
     :global(button:hover) {
         /* opacity: 0.8; */
         background-color: #f8f9fa79;
         /* border: 1px solid black; */
     }
-    
+
     :global(button.selected) {
         color: white;
         background-color: #4caf50; /* Green */
@@ -283,6 +281,5 @@
     }
     #downloadButton {
         right: 10px;
-        
     }
 </style>
