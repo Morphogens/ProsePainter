@@ -5,7 +5,6 @@ from typing import *
 from threading import Thread
 
 import torch
-import torchvision
 from loguru import logger
 import numpy as np
 from PIL import Image
@@ -30,10 +29,10 @@ class OptimizationManager:
 
         self.job_list = []
         self.num_iterations = 20
-        self.lr = 0.3
-        self.resolution = (256, 256)
-        self.num_crops = 8
-        self.num_accum_steps = 1
+        self.lr = 0.2
+        self.resolution = (448, 448)
+        self.num_crops = 32
+        self.num_accum_steps = 4
 
         self.num_crops = max(
             1,
@@ -180,7 +179,7 @@ class OptimizationManager:
             )
 
             with torch.no_grad():
-            latents = self.generator.get_latents_from_img(cond_img, )
+                latents = self.generator.get_latents_from_img(cond_img, )
 
             latents_list.append(latents)
 
