@@ -6,7 +6,18 @@ jobs:
   build:
     name: Build and push docker image
     runs-on: ubuntu-latest
+
+    # Limit concurrency in case it helps with failed docker builds
+    # concurrency: build
+
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+
       - name: Checkout repo
         uses: actions/checkout@v2
 
