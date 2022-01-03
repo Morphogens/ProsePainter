@@ -47,6 +47,12 @@ class OptimizationManager:
         self.generator = model_factory.load_model(
             self.model_name,
             device=self.device,
+            model_params_dict={
+                "clip_model_name_list": [
+                    "ViT-B/32",
+                    "ViT-B/16",
+                ]
+            },
         )
 
     def start(self, ):
