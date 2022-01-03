@@ -97,6 +97,7 @@ class OptimizationManager:
 
     def taming_worker(self, ):
         current_num_jobs = len(self.job_list)
+        job_thread_list = [None]*self.num_devices
         t = None
         while True:
             if current_num_jobs > 0 and t is None:
@@ -130,33 +131,40 @@ class OptimizationManager:
             #     )
 
             current_num_jobs = len(self.job_list)
+            print("THREAD LIST", job_thread_list)
             if current_num_jobs >= self.batch_size or time_waited > self.max_wait:
                 t = None
 
                 for cuda_idx in range(self.num_devices):
                     if current_num_jobs == 0:
                         continue
+                    current_thread = job_thread_list[cuda_idx]
+                    print("CURRENT THREAD", current_thread)
+                    if current_thread is not None:
+                        if current_thread.is_alive():
+                            print(f"WAITING FOR WORKER {cuda_idx} TO FINISH!!!")
+                            continue
 
                     logger.info(f"BATCHING!!! in machine {cuda_idx}")
 
-                    try:
-                        limit_job_idx = max(1, min(int(self.batch_size / self.num_devices), current_num_jobs))
-                        jobs_to_optimize = self.job_list[0:limit_job_idx]
-                        self.job_list = self.job_list[limit_job_idx::]
-                        
-                        self.batched_optimization(
-                            jobs_to_optimize,
-                            device=f"cuda:{cuda_idx}",
-                        )
+                    #try:
+                    limit_job_idx = max(1, min(int(self.batch_size / self.num_devices), current_num_jobs))
+                    jobs_to_optimize = self.job_list[0:limit_job_idx]
+                    self.job_list = self.job_list[limit_job_idx::]
+                    
+                    job_thread = Thread(target=self.batched_optimization, args=(jobs_to_optimize, f"cuda:{cuda_idx}",))
+                    job_thread_list[cuda_idx] = job_thread
+                    job_thread.start()
 
-                    except Exception as e:
-                        logger.error("ERROR IN BATCHED OPTIMIZATION!!")
-                        logger.error(repr(e))
+                    #except Exception as e:
+                    #    logger.error("ERROR IN BATCHED OPTIMIZATION!!")
+                    #    logger.error(repr(e))
 
                     torch.cuda.empty_cache()
                     gc.collect()
 
                     current_num_jobs = len(self.job_list)
+
 
     def batched_optimization(
         self,
