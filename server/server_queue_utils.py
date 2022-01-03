@@ -21,11 +21,9 @@ class OptimizationManager:
         self,
         batch_size=16,
         max_wait: float = 1,
-        device: str = "cuda:0",
     ):
         self.batch_size = batch_size
         self.max_wait = max_wait
-        self.device = device
 
         self.job_list = []
         self.num_iterations = 20
@@ -43,16 +41,21 @@ class OptimizationManager:
         self.async_manager = None
 
         self.model_name = "taming"
-        self.generator = model_factory.load_model(
-            self.model_name,
-            device=self.device,
-            model_params_dict={
-                "clip_model_name_list": [
-                    "ViT-B/32",
-                    "ViT-B/16",
-                ]
-            },
-        )
+
+        self.num_devices = torch.cuda.device_count()
+
+        self.generator_dict = {}
+        for cuda_idx in range(self.num_devices):
+            self.generator_dict[f"cuda:{cuda_idx}"] = model_factory.load_model(
+                self.model_name,
+                device=f"cuda:{cuda_idx}",
+                model_params_dict={
+                    "clip_model_name_list": [
+                        "ViT-B/32",
+                        "ViT-B/16",
+                    ]
+                },
+            )
 
     def start(self, ):
         Thread(target=self.taming_worker, ).start()
@@ -133,18 +136,26 @@ class OptimizationManager:
                     continue
 
                 logger.info("BATCHING!!!")
-                jobs_to_optimize = self.job_list[
-                    0:min(self.batch_size, current_num_jobs)]
 
-                self.job_list = self.job_list[
-                    min(self.batch_size, current_num_jobs)::]
+                for cuda_idx in range(self.num_devices):
+                    jobs_to_optimize = self.job_list[
+                        0:min(self.batch_size, current_num_jobs)]
 
-                self.batched_optimization(jobs_to_optimize, )
+                    self.job_list = self.job_list[
+                        min(self.batch_size, current_num_jobs)::]
+
+                    self.batched_optimization(
+                        jobs_to_optimize,
+                        device=f"cuda:{cuda_idx}",
+                    )
 
     def batched_optimization(
         self,
         optim_job_list,
+        device: str = "cuda:0",
     ):
+        generator = self.generator_dict[device]
+
         latents_list = []
         user_prompt_list = []
         for user_params in optim_job_list:
@@ -179,14 +190,14 @@ class OptimizationManager:
             )
 
             with torch.no_grad():
-                latents = self.generator.get_latents_from_img(cond_img, )
+                latents = generator.get_latents_from_img(cond_img, )
 
             latents_list.append(latents)
 
-        text_logits_list = self.generator.get_clip_text_encodings(
+        text_logits_list = generator.get_clip_text_encodings(
             user_prompt_list, )
 
-        batched_latents = torch.cat(latents_list, ).to(self.device)
+        batched_latents = torch.cat(latents_list, ).to(device)
         batched_latents = batched_latents.detach()
         batched_latents = torch.nn.Parameter(batched_latents)
 
@@ -199,15 +210,13 @@ class OptimizationManager:
         step = 0
         for _iter_idx in range(self.num_iterations):
             for _accum_idx in range(self.num_accum_steps):
-                gen_img = self.generator.get_img_from_latents(
-                    batched_latents, )
+                gen_img = generator.get_img_from_latents(batched_latents, )
 
-                img_aug = self.generator.augment(
+                img_aug = generator.augment(
                     gen_img,
                     num_crops=self.num_crops,
                 )
-                img_logits_list = self.generator.get_clip_img_encodings(
-                    img_aug, )
+                img_logits_list = generator.get_clip_img_encodings(img_aug, )
 
                 loss = 0
 
@@ -250,7 +259,7 @@ class OptimizationManager:
                 y_pad_size = pad_scale * cond_img_h * (y_pad_percent - 1)
 
                 with torch.no_grad():
-                    img_rec = self.generator.get_img_from_latents(
+                    img_rec = generator.get_img_from_latents(
                         batched_latents[user_idx, :][None, :], )
 
                 img_rec_h = img_rec.shape[2]
