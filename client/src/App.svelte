@@ -101,15 +101,13 @@
 
 <OptionPanel maskCanvas={$maskCanvas} mainCanvas={$mainCanvas} />
 
-{#if $mode == Mode.DirectDraw || $mode == Mode.MaskDraw}
-    <button
-        id="downloadButton"
-        class="roundCornerButton"
-        on:click={(e) => downloadCanvas($mainCanvas.getCanvas())}
-    >
-        <img src={downloadUrl} alt="download" />
-    </button>
-{/if}
+<button
+    id="downloadButton"
+    class="roundCornerButton"
+    on:click={(e) => downloadCanvas($mainCanvas.getCanvas())}
+>
+    <img src={downloadUrl} alt="download" />
+</button>
 
 <InfoModal bind:this={modal} />
 <button
