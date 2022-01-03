@@ -46,7 +46,6 @@ jobs:
         with:
           context: .
           push: true
-          load: true
           tags: "775974887579.dkr.ecr.us-east-1.amazonaws.com/prosepainter:${{ github.sha }}"
           cache-from: type=gha
           cache-to: type=gha
