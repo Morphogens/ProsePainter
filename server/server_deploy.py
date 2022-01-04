@@ -95,6 +95,9 @@ class AsyncManager:
         user_id: str,
         async_value: Dict,
     ):
+        if async_value is None:
+            logger.info(f"{user_id} NONE RECEIVED, WTF!")
+            return
         if not self.user_active_dict[user_id]:
             logger.info(f"{user_id} NOT ACTIVE")
             return
@@ -116,31 +119,37 @@ class AsyncManager:
 
     async def send_async_data(
         self,
-        user_id,
     ):
-        if user_id not in self.async_value_buffer.keys():
-            return
+        for user_id, async_value in self.async_value_buffer.items():
+            for async_idx in range(len(self.async_value_buffer[user_id])):
+                async_value = self.async_value_buffer[user_id].pop()
 
-        num_elements = len(self.async_value_buffer[user_id])
-        if num_elements == 0:
-            logger.info(f"\n!!!!\n{user_id} DATA EMPTY\n!!!!\n")
+                if "user_id" not in async_value.keys():
+                    logger.info(f"\n!!!!\nRECEIVED DATA WITH NO USER ID\n!!!!\n")
+                    continue
 
-            return
+                if len(async_value) == 0:
+                    logger.info(f"\n!!!!\nRECEIVED DATA EMPTY\n!!!!\n")
+                    continue
+                
+                user_id = async_value["user_id"]
 
-        for data_idx in range(num_elements):
+                if user_id not in self.user_websocket_dict.keys():
+                    logger.error(f"NO WEBSOCKET FOR USER {user_id}")
+                    continue
 
-            await self.user_websocket_dict[user_id].send_json(
-                self.async_value_buffer[user_id].pop(0))
+                await self.user_websocket_dict[user_id].send_json(
+                    async_value,)
 
-            if not self.user_active_dict[user_id]:
-                logger.info(f"{user_id} NOT ACTIVE")
-                return
-            await asyncio.sleep(0.)
+                logger.info(f"{user_id} ASYNC RESULTS SENT!")
+
+                await asyncio.sleep(0.)
 
         return
 
 
 async_manager = None
+async_manager_running = False
 optimization_manager = None
 
 
@@ -165,18 +174,6 @@ class UserSession:
         self.mask_optimizer = None
 
         self.user_id = user_id
-
-    async def run(self, ) -> None:
-        """
-        Launch listen and send async processes.
-        """
-        await asyncio.wait(
-            [
-                self.listen_loop(),
-                self.send_loop(),
-            ],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
 
     def optimize_canvas(
         self,
@@ -471,20 +468,6 @@ class UserSession:
         except Exception as e:
             logger.exception("Error", e)
 
-    async def send_loop(self):
-        """
-        Handle the emission of messages to the client.
-        """
-        while True:
-            result_dict = await async_manager.wait_for_async_result()
-            await async_manager.send_async_data(self.user_id, )
-            # if self.user_id == result_dict["user_id"]:
-            #     logger.debug("RESULT DICT")
-            #     logger.debug(result_dict)
-            #     await self.websocket.send_json(result_dict)
-
-            logger.info(f"{self.user_id} ASYNC RESULTS SENT!")
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, ) -> None:
@@ -499,6 +482,14 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
     global async_manager
     if async_manager is None:
         async_manager = AsyncManager()
+
+    async def send_loop():
+        """
+        Handle the emission of messages to the client.
+        """
+        while True:
+            await async_manager.wait_for_async_result()
+            await async_manager.send_async_data()
 
     try:
         await websocket.accept()
@@ -517,7 +508,13 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
             websocket,
         )
 
-        await user_session.run()
+        await asyncio.wait(
+            [
+                user_session.listen_loop(),
+                send_loop(),
+            ],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
     except Exception as e:
         logger.error(f"WEBSOCKET CONNECTION ERROR: {e}")

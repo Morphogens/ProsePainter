@@ -19,7 +19,7 @@ model_factory = ModelFactory()
 class OptimizationManager:
     def __init__(
         self,
-        batch_size=8,
+        batch_size=2,
         max_wait: float = 1,
     ):
         self.batch_size = batch_size
@@ -29,7 +29,7 @@ class OptimizationManager:
         self.num_iterations = 20
         self.lr = 0.15
         self.resolution = (400, 400)
-        self.num_crops = 64
+        self.num_crops = 32
         self.num_accum_steps = 1
 
         self.num_crops = max(
@@ -103,7 +103,7 @@ class OptimizationManager:
             if current_num_jobs > 0 and t is None:
                 t = time.time()
 
-            logger.info(f"{current_num_jobs} WAITING FOR DATA TO BATCH...")
+            # logger.info(f"{current_num_jobs} WAITING FOR DATA TO BATCH...")
             time.sleep(0.5)
 
             self.job_list = [
@@ -116,41 +116,34 @@ class OptimizationManager:
             else:
                 time_waited = -1
 
-            logger.info(f"TIME WAITED {time_waited}/{self.max_wait} SECONDS")
-
-            # for job in self.job_list:
-            #     user_id = job["user_id"]
-
-            #     self.async_manager.set_async_value(
-            #         user_id,
-            #         {
-            #             "message": "error",
-            #             "user_id": user_id,
-            #             "image": updated_canvas_uri,
-            #         },
-            #     )
+            # logger.info(f"TIME WAITED {time_waited}/{self.max_wait} SECONDS")
 
             current_num_jobs = len(self.job_list)
-            print("THREAD LIST", job_thread_list)
+            # print("THREAD LIST", job_thread_list)
             if current_num_jobs >= self.batch_size or time_waited > self.max_wait:
                 t = None
 
                 for cuda_idx in range(self.num_devices):
                     if current_num_jobs == 0:
                         continue
+
                     current_thread = job_thread_list[cuda_idx]
+
                     print("CURRENT THREAD", current_thread)
                     if current_thread is not None:
                         if current_thread.is_alive():
                             print(f"WAITING FOR WORKER {cuda_idx} TO FINISH!!!")
                             continue
 
-                    logger.info(f"BATCHING!!! in machine {cuda_idx}")
 
                     #try:
-                    limit_job_idx = max(1, min(int(self.batch_size / self.num_devices), current_num_jobs))
+                    limit_job_idx = max(1, min(int(current_num_jobs / self.num_devices), self.batch_size))
                     jobs_to_optimize = self.job_list[0:limit_job_idx]
                     self.job_list = self.job_list[limit_job_idx::]
+                    
+                    logger.info(f"BATCHING!!! in machine {cuda_idx}")
+                    logger.info(f"NUMBER OF JOBS OPTIMIZING", len(jobs_to_optimize))
+                    logger.info(f"NUMBER OF JOBS LEFT", len(self.job_list))
                     
                     job_thread = Thread(target=self.batched_optimization, args=(jobs_to_optimize, f"cuda:{cuda_idx}",))
                     job_thread_list[cuda_idx] = job_thread
@@ -160,11 +153,8 @@ class OptimizationManager:
                     #    logger.error("ERROR IN BATCHED OPTIMIZATION!!")
                     #    logger.error(repr(e))
 
-                    torch.cuda.empty_cache()
-                    gc.collect()
 
                     current_num_jobs = len(self.job_list)
-
 
     def batched_optimization(
         self,
@@ -172,6 +162,42 @@ class OptimizationManager:
         device: str = "cuda:0",
     ):
         generator = self.generator_dict[device]
+        
+        max_resolution = (0,0)
+        for user_params in optim_job_list:
+            cond_img = user_params["cond_img"]
+            cond_img = cond_img.to(device)
+
+            cond_img_h = cond_img.shape[2]
+            cond_img_w = cond_img.shape[3]
+            x_pad_percent = 1 / min(1, cond_img_w / cond_img_h)
+            y_pad_percent = 1 / min(1, cond_img_h / cond_img_w)
+            x_pad_size = cond_img_w * (x_pad_percent - 1)
+            y_pad_size = cond_img_h * (y_pad_percent - 1)
+
+            cond_img = torch.nn.functional.pad(
+                cond_img,
+                (
+                    int(x_pad_size / 2),
+                    int(x_pad_size / 2),
+                    int(y_pad_size / 2),
+                    int(y_pad_size / 2),
+                ),
+                mode='constant',
+                value=torch.tensor(0).to(device),
+            )
+
+            current_resolution = cond_img.shape[2::]
+
+            if max(current_resolution) > max(max_resolution):
+                max_resolution = current_resolution
+
+            if max(max_resolution) >= max(self.resolution):
+                max_resolution = self.resolution
+                break
+
+
+        print("RESOLUTION", max_resolution)
 
         latents_list = []
         user_prompt_list = []
@@ -201,9 +227,12 @@ class OptimizationManager:
                 value=torch.tensor(0).to(device),
             )
 
+            current_resolution = cond_img.shape[2::]
+
+
             cond_img = torch.nn.functional.interpolate(
                 cond_img,
-                self.resolution,
+                max_resolution,
                 mode="bilinear",
             )
 
