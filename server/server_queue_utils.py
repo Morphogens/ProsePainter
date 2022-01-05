@@ -19,7 +19,7 @@ model_factory = ModelFactory()
 class OptimizationManager:
     def __init__(
         self,
-        batch_size=2,
+        batch_size=4,
         max_wait: float = 1,
     ):
         self.batch_size = batch_size
@@ -96,65 +96,84 @@ class OptimizationManager:
         return
 
     def taming_worker(self, ):
-        current_num_jobs = len(self.job_list)
-        job_thread_list = [None]*self.num_devices
-        t = None
-        while True:
-            if current_num_jobs > 0 and t is None:
-                t = time.time()
-
-            # logger.info(f"{current_num_jobs} WAITING FOR DATA TO BATCH...")
-            time.sleep(0.5)
-
-            self.job_list = [
-                job for job in self.job_list
-                if self.async_manager.user_active_dict[job["user_id"]]
-            ]
-
-            if t is not None:
-                time_waited = time.time() - t
-            else:
-                time_waited = -1
-
-            # logger.info(f"TIME WAITED {time_waited}/{self.max_wait} SECONDS")
-
+        try:
             current_num_jobs = len(self.job_list)
-            # print("THREAD LIST", job_thread_list)
-            if current_num_jobs >= self.batch_size or time_waited > self.max_wait:
-                t = None
+            job_thread_list = [None]*self.num_devices
+            t = None
+            while True:
+                if current_num_jobs > 0 and t is None:
+                    t = time.time()
 
-                for cuda_idx in range(self.num_devices):
-                    if current_num_jobs == 0:
-                        continue
+                # logger.info(f"{current_num_jobs} WAITING FOR DATA TO BATCH...")
+                time.sleep(0.5)
 
-                    current_thread = job_thread_list[cuda_idx]
+                updated_job_list = []
+                for job in self.job_list:
+                    try:
+                        if self.async_manager.user_active_dict[job["user_id"]]:
+                            updated_job_list.append(job)
+                    except Exception as e:
+                        print("!!! ")
+                        print(repr(e))
+                        print("!!! ")
+                self.job_list = updated_job_list
 
-                    print("CURRENT THREAD", current_thread)
-                    if current_thread is not None:
-                        if current_thread.is_alive():
-                            print(f"WAITING FOR WORKER {cuda_idx} TO FINISH!!!")
+
+
+                if t is not None:
+                    time_waited = time.time() - t
+                else:
+                    time_waited = -1
+
+                # logger.info(f"TIME WAITED {time_waited}/{self.max_wait} SECONDS")
+
+                current_num_jobs = len(self.job_list)
+                # print("THREAD LIST", job_thread_list)
+                if current_num_jobs >= self.batch_size or time_waited > self.max_wait:
+                    t = None
+
+                    for cuda_idx in range(self.num_devices):
+                        if current_num_jobs == 0:
                             continue
 
+                        current_thread = job_thread_list[cuda_idx]
 
-                    #try:
-                    limit_job_idx = max(1, min(int(current_num_jobs / self.num_devices), self.batch_size))
-                    jobs_to_optimize = self.job_list[0:limit_job_idx]
-                    self.job_list = self.job_list[limit_job_idx::]
-                    
-                    logger.info(f"BATCHING!!! in machine {cuda_idx}")
-                    logger.info(f"NUMBER OF JOBS OPTIMIZING", len(jobs_to_optimize))
-                    logger.info(f"NUMBER OF JOBS LEFT", len(self.job_list))
-                    
-                    job_thread = Thread(target=self.batched_optimization, args=(jobs_to_optimize, f"cuda:{cuda_idx}",))
-                    job_thread_list[cuda_idx] = job_thread
-                    job_thread.start()
-
-                    #except Exception as e:
-                    #    logger.error("ERROR IN BATCHED OPTIMIZATION!!")
-                    #    logger.error(repr(e))
+                        print("CURRENT THREAD", current_thread)
+                        if current_thread is not None:
+                            if current_thread.is_alive():
+                                print(f"WAITING FOR WORKER {cuda_idx} TO FINISH!!!")
+                                continue
 
 
-                    current_num_jobs = len(self.job_list)
+                        #try:
+                        if current_num_jobs <  self.batch_size:
+                            limit_job_idx = max(1, int(current_num_jobs/self.num_devices))
+                        else:
+                            limit_job_idx = self.batch_size
+
+                        jobs_to_optimize = self.job_list[0:limit_job_idx]
+                        self.job_list = self.job_list[limit_job_idx::]
+                        
+                        logger.info(f"BATCHING!!! in machine {cuda_idx}")
+                        logger.info(f"NUMBER OF JOBS OPTIMIZING", len(jobs_to_optimize))
+                        logger.info(f"NUMBER OF JOBS LEFT", len(self.job_list))
+                        
+                        job_thread = Thread(target=self.batched_optimization, args=(jobs_to_optimize, f"cuda:{cuda_idx}",))
+                        job_thread_list[cuda_idx] = job_thread
+                        job_thread.start()
+
+                        #except Exception as e:
+                        #    logger.error("ERROR IN BATCHED OPTIMIZATION!!")
+                        #    logger.error(repr(e))
+
+
+                        current_num_jobs = len(self.job_list)
+        except:
+            print("!!!!!!")
+            print("!!!!!!")
+            print("THREAD FAILED")
+            print("!!!!!!")
+            print("!!!!!!")
 
     def batched_optimization(
         self,
@@ -284,11 +303,20 @@ class OptimizationManager:
             optimizer.zero_grad()
 
             step += 1
+            
+            updated_optim_list = []
+            for job in optim_job_list:
+                try:
+                    if self.async_manager.user_active_dict[job["user_id"]]:
+                        updated_optim_list.append(job)
+                except Exception as e:
+                    print("!!! ")
+                    print(repr(e))
+                    print("!!! ")
 
-            optim_job_list = [
-                job for job in optim_job_list
-                if self.async_manager.user_active_dict[job["user_id"]]
-            ]
+            optim_job_list = updated_optim_list
+
+
 
             for user_idx, user_params in enumerate(optim_job_list):
                 user_id = user_params["user_id"]
