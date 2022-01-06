@@ -1,7 +1,7 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
 import { addEventListener, messageServer } from "@/lib/socket";
-import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt, numRecSteps, modelType } from './stores'
+import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt, numRecSteps, modelType, numUsers } from './stores'
 import { imgTob64 } from './utils';
 
 interface StartGenerationData {
@@ -89,6 +89,9 @@ export function resume() {
 addEventListener("message", (e) => {
     console.log("MESSAGE RECEIVED!")
     const message = JSON.parse(e.data)
+    if(message.numUsers){
+        numUsers.set(message.numUsers);
+    }
     if (get(mode) !== Mode.Optimizing) {
         // If we get a message from the server after the user paused.
         return

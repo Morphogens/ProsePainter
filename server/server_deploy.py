@@ -232,6 +232,11 @@ class UserSession:
         Handle incoming messages from the client.
         """
         try:
+            async_manager.add_user(
+                self.user_id,
+                self.websocket,
+            )
+
             while True:
                 try:
                     msg_dict = await self.websocket.receive_json()
@@ -336,6 +341,7 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     finally:
         logger.info("WEBSOCKET DISCONNECTED.")
+        async_manager.remove_user(user_id, )
 
     return
 

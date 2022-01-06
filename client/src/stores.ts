@@ -13,6 +13,7 @@ export const mode = writable(Mode.SetImage as Mode)
 export const canvasSize = localStorageWritable('canvasSize', [512, 512])
 export const mainCanvas = writable(null as null | DrawCanvas)
 export const maskCanvas = writable(null as null | DrawCanvas)
+export const numUsers = writable(0)
 
 
 export const lastOptimizationResult = writable(null as null | OptimizationResult)

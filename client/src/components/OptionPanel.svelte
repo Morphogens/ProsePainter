@@ -1,6 +1,6 @@
 <script lang="ts">
     import type DrawCanvas from "@/drawing/DrawCanvas.svelte";
-    import { mode } from "@/stores";
+    import { mode, numUsers } from "@/stores";
     import { Mode } from "../types";
     import DrawMaskOptions from "./DrawMaskOptions.svelte";
     import DrawDirectOptions from "./DrawDirectOptions.svelte";
@@ -27,12 +27,16 @@
             on:click={(e) => ($mode = Mode.MaskDraw)}><p>Magic Ink</p></button
         >
     </div>
+    
 {/if}
 <div id="optionPanel">
     <SetImageOptions {mainCanvas} />
     <DrawMaskOptions {maskCanvas} />
     <DrawDirectOptions {mainCanvas} />
     <OptimizeOptions />
+    <h3 style="font-size:10pt;" >
+    ({$numUsers} painters)
+    </h3>
 </div>
 
 <style>

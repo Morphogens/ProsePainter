@@ -1,7 +1,7 @@
 import { writable, readable, get } from 'svelte/store'
 import { SERVER_URL } from '../constants'
 
-let socket = new WebSocket(SERVER_URL)
+let socket
 const events = []
 export const socketOpen = writable(false)
 
