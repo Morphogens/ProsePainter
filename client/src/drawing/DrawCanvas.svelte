@@ -22,7 +22,6 @@
 
     $: width = $canvasSize[0]
     $: height = $canvasSize[1]
-    $: console.log('sdsa', canvasSize);
     
     let canvas: HTMLCanvasElement;
     let ctx: CanvasRenderingContext2D;
@@ -66,7 +65,7 @@
         previewCanvas.height = height;
     }
 
-    export function set(src: HTMLCanvasElement | HTMLImageElement) {
+    export function setImage(src: HTMLCanvasElement | HTMLImageElement) {
         console.log("set image")
         ctx.clearRect(0, 0, width, height)
         ctx.drawImage(src, 0, 0);
@@ -110,12 +109,8 @@
         currentStrokeCtx = currentStrokeCanvas.getContext("2d");
         const savedUrl = window.localStorage.getItem(`${id}-canvasBase64`);
         const startUrl = savedUrl || defaultImageUrl;
-        console.log("startUrl", startUrl.length);
         if (startUrl != null && startUrl != "null") {
-            const startImage = await loadImage(startUrl);
-            ctx.drawImage(startImage, 0, 0);
-            console.log(undoStack.length);
-            canvasChanged();
+            setImage(await loadImage(startUrl))
         }
     });
 

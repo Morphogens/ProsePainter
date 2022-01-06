@@ -7,6 +7,7 @@
     import { mode } from "./stores";
     // import startBackgroundUrl from "./assets/startImage0.jpeg";
     import downloadUrl from "./assets/download.svg";
+    import beforeAfterUrl from "./assets/before-after.svg";
     import { downloadCanvas, mergeCanvas } from "./utils";
     import { Mode } from "./types";
     import {
@@ -18,7 +19,8 @@
     import { drawCircle, drawLines } from "./drawing/drawUtils";
     import { drawMaskGridAlpha, drawGrid } from "./maskDrawMethods";
     import InfoModal from "./components/InfoModal.svelte";
-    import { DEFAULT_IMAGES } from './constants'
+    import { DEFAULT_IMAGE } from "./constants";
+    import { exportImage, drawHistoryStore } from "./drawHistory";
 
     let mouseover = false;
     let cursorCanvas: HTMLCanvasElement;
@@ -95,16 +97,41 @@
         cursorCtx = cursorCanvas.getContext("2d");
         outlineCtx = outlineCanvas.getContext("2d");
     });
+
+    // function localStorageSpace(){
+    //     let data = '';
+
+    //     console.log('Current local storage: ');
+
+    //     for(let key in window.localStorage){
+    //         if(window.localStorage.hasOwnProperty(key)){
+    //             data += window.localStorage[key];
+    //             console.log( key + " = " + ((window.localStorage[key].length * 16)/(8 * 1024)).toFixed(2) + ' KB' );
+    //         }
+    //     }
+    //     console.log(data ? '\n' + 'Total space used: ' + ((data.length * 16)/(8 * 1024)).toFixed(2) + ' KB' : 'Empty (0 KB)');
+    //     console.log(data ? 'Approx. space remaining: ' + (5120 - ((data.length * 16)/(8 * 1024)).toFixed(2)) + ' KB' : '5 MB');
+    // };
+    // localStorageSpace()
 </script>
 
 <svelte:window on:keydown={onKeyDown} />
 
 <OptionPanel maskCanvas={$maskCanvas} mainCanvas={$mainCanvas} />
 
+{#if $drawHistoryStore.hasOptimized}
+    <button
+        id="downloadBeforeAfterButton"
+        class="roundCornerButton"
+        on:click={async (e) => downloadCanvas(await exportImage(), 'before-after-prose.jpg')}
+    >
+        <img src={beforeAfterUrl} alt="download" />
+    </button>
+{/if}
 <button
     id="downloadButton"
     class="roundCornerButton"
-    on:click={(e) => downloadCanvas($mainCanvas.getCanvas())}
+    on:click={(e) => downloadCanvas($mainCanvas.getCanvas(), 'prosepainter-image.png')}
 >
     <img src={downloadUrl} alt="download" />
 </button>
@@ -139,7 +166,7 @@
                     {canvasSize}
                     radius={4}
                     id="mainCanvas"
-                    defaultImageUrl={DEFAULT_IMAGES[1]}
+                    defaultImageUrl={DEFAULT_IMAGE}
                     showCursor={$mode == Mode.SetImage}
                     bind:this={$mainCanvas}
                 />
@@ -265,7 +292,7 @@
     }
     .roundCornerButton {
         position: fixed;
-        bottom: 10px;
+        bottom: 16px;
         z-index: 1;
         background: white;
         border-radius: 50%;
@@ -277,7 +304,17 @@
         width: 100%;
         height: 100%;
     }
+    #helpButton {
+        left: 12px;
+    }
     #downloadButton {
-        right: 10px;
+        right: 16px;
+        bottom: 16px;
+    }
+    #downloadBeforeAfterButton {
+        width: 36px;
+        height: 36px;
+        right: 16px;
+        bottom: 76px;
     }
 </style>

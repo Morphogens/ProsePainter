@@ -7,9 +7,7 @@
     import OptimizeOptions from './OptimizeOptions.svelte'
     import SetImageOptions from "./SetImageOptions.svelte";
     export let maskCanvas: DrawCanvas;
-    export let mainCanvas: DrawCanvas;
-    $: console.log('mode=', $mode);
-    
+    export let mainCanvas: DrawCanvas;    
 </script>
 
 {#if $mode != Mode.Optimizing && $mode != Mode.PausedOptimizing}

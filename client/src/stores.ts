@@ -18,7 +18,7 @@ export const numUsers = writable(0)
 
 export const lastOptimizationResult = writable(null as null | OptimizationResult)
 
-function localStorageWritable<T>(name:string, defaultValue:T):Writable<T>{
+export function localStorageWritable<T>(name:string, defaultValue:T):Writable<T>{
     // Svelte store that persists to localStorage.
     // Data must be JSON-able.
     const store = writable(

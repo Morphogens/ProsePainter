@@ -16,6 +16,12 @@ export function imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
     return canvas
 }
 
+export function canvasToImage(canvas: HTMLCanvasElement): HTMLImageElement {
+    const image = new Image()
+    image.src = canvas.toDataURL()
+    return image
+}
+
 export function imgTob64(img: HTMLImageElement): string {
     const canvas = imageToCanvas(img)
     return canvas.toDataURL()

@@ -5,6 +5,7 @@
     import { loadImage, imageToCanvas, thumbnailCanvas } from "@/utils";
     import { tick } from "svelte";
     import { MAX_IMAGE_SIZE, DEFAULT_IMAGES } from "@/constants";
+    import * as drawHistory from '../drawHistory'
     export let mainCanvas: DrawCanvas;
 
     let width: number = 512;
@@ -27,7 +28,8 @@
         const ctx = whiteCanvas.getContext('2d')
         ctx.fillStyle = 'white'
         ctx.fillRect(0, 0, width, height)
-        mainCanvas.set(whiteCanvas)
+        mainCanvas.setImage(whiteCanvas)
+        drawHistory.reset()
     }
 
     async function setImageByURL(imageUrl: string) {
@@ -35,7 +37,8 @@
         const canvas = thumbnailCanvas(imageToCanvas(image), MAX_IMAGE_SIZE);
         canvasSize.set([canvas.width, canvas.height]);
         await tick(); // DrawCanvases get recreated.
-        mainCanvas.set(canvas);
+        mainCanvas.setImage(canvas);
+        drawHistory.reset()
     }
 </script>
 

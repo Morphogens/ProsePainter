@@ -47,6 +47,8 @@ export function start() {
     mode.set(Mode.Optimizing)
 }
 
+export const events: EventTarget = new EventTarget()
+
 export function discard() {
     messageServer("stop-generation", {})
     lastOptimizationResult.set(null)
@@ -55,9 +57,10 @@ export function discard() {
 
 export function accept() {
     messageServer("stop-generation", {})
-    get(mainCanvas).set(get(lastOptimizationResult).image)
+    get(mainCanvas).setImage(get(lastOptimizationResult).image)
     lastOptimizationResult.set(null)
     mode.set(Mode.MaskDraw)
+    events.dispatchEvent(new CustomEvent('accepted', { }))
 }
 
 export function upscale() {
