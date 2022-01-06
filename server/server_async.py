@@ -44,9 +44,6 @@ class AsyncManager:
         return
 
     async def send_async_data(self, ):
-        print("SEND BUFFFFER")
-        print(self.async_value_buffer)
-
         user_id_list = list(self.async_value_buffer.keys())
         for user_id in user_id_list:
             async_value_list = self.async_value_buffer.pop(user_id)[::-1]
