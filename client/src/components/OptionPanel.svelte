@@ -34,9 +34,9 @@
     <DrawMaskOptions {maskCanvas} />
     <DrawDirectOptions {mainCanvas} />
     <OptimizeOptions />
-    <h3 style="font-size:10pt;" >
+    <!-- <h3 style="font-size:10pt;" >
     ({$numUsers} painters)
-    </h3>
+    </h3> -->
 </div>
 
 <style>
