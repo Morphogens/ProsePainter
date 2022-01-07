@@ -342,6 +342,7 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
     finally:
         logger.info("WEBSOCKET DISCONNECTED.")
         async_manager.remove_user(user_id, )
+        optimization_manager.remove_job(user_id, )
 
     return
 
