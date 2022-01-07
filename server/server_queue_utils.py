@@ -157,9 +157,11 @@ class OptimizationManager:
                         self.job_list = self.job_list[limit_job_idx::]
 
                         logger.info(f"BATCHING!!! in machine {cuda_idx}")
-                        logger.info(f"NUMBER OF JOBS OPTIMIZING",
-                                    len(jobs_to_optimize))
-                        logger.info(f"NUMBER OF JOBS LEFT", len(self.job_list))
+                        logger.info(
+                            f"NUMBER OF JOBS OPTIMIZING {len(jobs_to_optimize)}"
+                        )
+                        logger.info(
+                            f"NUMBER OF JOBS LEFT {len(self.job_list)}")
 
                         job_thread = Thread(target=self.batched_optimization,
                                             args=(
