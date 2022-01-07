@@ -224,10 +224,10 @@ class OptimizationManager:
                     value=torch.tensor(0).to(device),
                 )
 
-                current_resolution = cond_img.shape[2::]
+                current_resolution = max(cond_img.shape[2::]) // 16 * 16
 
-                if max(current_resolution) > max(max_resolution):
-                    max_resolution = current_resolution
+                if current_resolution > max(max_resolution):
+                    max_resolution = [int(current_resolution)] * 2
 
                 if max(max_resolution) >= max(self.resolution):
                     max_resolution = self.resolution
