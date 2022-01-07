@@ -48,8 +48,8 @@ class AsyncManager:
         for user_id in user_id_list:
             async_value_list = self.async_value_buffer.pop(user_id)[::-1]
 
-            if user_id not in self.active_user_list:
-                continue
+            # if user_id not in self.active_user_list:
+            #     continue
 
             for _async_idx in range(len(async_value_list)):
                 async_value = async_value_list.pop()
