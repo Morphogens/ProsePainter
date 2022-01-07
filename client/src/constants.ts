@@ -17,6 +17,8 @@ export const DEFAULT_IMAGES = [
     image5Url
 ]
 
+export const DEFAULT_IMAGE = DEFAULT_IMAGES[1]
+
 const serverPort = import.meta.env.VITE_SERVER_PORT || 8004
 const host = window.location.hostname;
 const hasPort = window.location.host.endsWith(":8003") || window.location.host.endsWith(":8004");

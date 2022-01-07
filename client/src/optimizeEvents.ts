@@ -1,7 +1,7 @@
 import { Mode } from './types';
 import { writable, get } from 'svelte/store'
 import { addEventListener, messageServer } from "@/lib/socket";
-import { prompt, mode, learningRate, lastOptimizationResult, mainCanvas, maskCanvas, stylePrompt, numRecSteps, modelType, numUsers } from './stores'
+import { prompt, mode, learningRate, optimizationResults, mainCanvas, maskCanvas, stylePrompt, numRecSteps, modelType, numUsers, selectedOptIdx, selectedOptImage } from './stores'
 import { imgTob64 } from './utils';
 
 interface StartGenerationData {
@@ -40,6 +40,13 @@ function validateGenerationData(data: StartGenerationData) {
     }
 }
 
+function lastOptimizationResult():HTMLImageElement {
+    const images = get(optimizationResults).images
+    return images[images.length]
+}
+
+export const events: EventTarget = new EventTarget()
+
 export function start() {
     const data = getGenerationData()
     validateGenerationData(data)
@@ -49,24 +56,25 @@ export function start() {
 
 export function discard() {
     messageServer("stop-generation", {})
-    lastOptimizationResult.set(null)
+    optimizationResults.set(null)
     mode.set(Mode.MaskDraw)
 }
 
 export function accept() {
     messageServer("stop-generation", {})
-    get(mainCanvas).set(get(lastOptimizationResult).image)
-    lastOptimizationResult.set(null)
+    get(mainCanvas).setImage(get(selectedOptImage))
+    optimizationResults.set(null)
     mode.set(Mode.MaskDraw)
+    events.dispatchEvent(new CustomEvent('accepted', {}))
 }
 
-export function upscale() {
-    const data = getGenerationData()
-    data.backgroundImg = imgTob64(get(lastOptimizationResult).image)
-    validateGenerationData(data)
-    messageServer('upscale-generation', data)
-    mode.set(Mode.Optimizing)
-}
+// export function upscale() {
+//     const data = getGenerationData()
+//     data.backgroundImg = imgTob64(get(lastOptimizationResult).image)
+//     validateGenerationData(data)
+//     messageServer('upscale-generation', data)
+//     mode.set(Mode.Optimizing)
+// }
 
 export function pause() {
     // TODO
@@ -80,7 +88,7 @@ export function resume() {
     // messageServer("resume-generation", {})
     // like start() but use lastOptimizationResult instead of main canvas
     const data = getGenerationData()
-    data.backgroundImg = imgTob64(get(lastOptimizationResult).image)
+    data.backgroundImg = imgTob64(lastOptimizationResult())
     validateGenerationData(data)
     messageServer('resume-generation', data)
     mode.set(Mode.Optimizing)
@@ -89,7 +97,7 @@ export function resume() {
 addEventListener("message", (e) => {
     console.log("MESSAGE RECEIVED!")
     const message = JSON.parse(e.data)
-    if(message.numUsers){
+    if (message.numUsers) {
         numUsers.set(message.numUsers);
     }
     if (get(mode) !== Mode.Optimizing) {
@@ -100,15 +108,14 @@ addEventListener("message", (e) => {
         console.log("IMAGE RECEIVED!")
         const newImage = new Image()
         newImage.src = "data:text/plain;base64," + message.image
-        lastOptimizationResult.set({
-            image: newImage,
-            step: message.step as number,
+        optimizationResults.update(_optResults => ({
+            images: (_optResults ? _optResults.images : []).concat([newImage]),
             num_iterations: message.num_iterations as number,
-        })
+        }))
         if (message.step == message.num_iterations) {
             mode.set(Mode.PausedOptimizing)
         }
-
+        selectedOptIdx.set(message.step - 1)
     } else {
         console.log("NO IMAGE RECEIVED!")
     }

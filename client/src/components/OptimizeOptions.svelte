@@ -1,12 +1,13 @@
 <script lang="ts">
-    import { mode, lastOptimizationResult } from "@/stores";
+    import { mode, optimizationResults, selectedOptIdx } from "@/stores";
     import { Mode } from "../types";
     import * as optEvents from "../optimizeEvents";
-    $: OR = $lastOptimizationResult;
+    import Slider from './Slider.svelte'
+    $: OR = $optimizationResults;
     $: optimizeMessage = OR
-        ? `${OR.step} / ${OR.num_iterations}`
+        ? `${OR.images.length} / ${OR.num_iterations}`
         : "Waiting for server";
-    $: optCompleted = OR && OR.step == OR.num_iterations
+    $: optCompleted = OR && OR.images.length == OR.num_iterations
 </script>
 
 {#if $mode == Mode.Optimizing}
@@ -29,6 +30,7 @@
             <p>Resume</p>
         </button>
     {/if}
+    <Slider name='step' min={0} max={$optimizationResults.images.length-1} step={1} bind:val={$selectedOptIdx}/>
 {/if}
 
 <style>

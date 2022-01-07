@@ -7,8 +7,8 @@ export enum Mode {
     PausedOptimizing,
 }
 
-export interface OptimizationResult {
-    step: number,
-    num_iterations: number,
-    image: HTMLImageElement
+export interface OptimizationResults {
+    // step: number,
+    num_iterations: number, // The total possible.
+    images: HTMLImageElement[]
 }
