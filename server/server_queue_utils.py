@@ -127,6 +127,15 @@ class OptimizationManager:
 
                 # logger.info(f"TIME WAITED {time_waited}/{self.max_wait} SECONDS")
 
+                for job_idx, job in enumerate(self.job_list):
+                    user_id = job["user_id"]
+                    websocket = job["websocket"]
+                    self.async_manager.set_async_value(
+                        user_id,
+                        {"numQueueUsers": job_idx},
+                        websocket,
+                    )
+
                 current_num_jobs = len(self.job_list)
                 # print("THREAD LIST", job_thread_list)
                 if current_num_jobs >= self.batch_size or time_waited > self.max_wait:

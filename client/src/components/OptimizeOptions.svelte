@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { mode, optimizationResults, selectedOptIdx } from "@/stores";
+    import { mode, optimizationResults, selectedOptIdx, numQueueUsers } from "@/stores";
     import { Mode } from "../types";
     import * as optEvents from "../optimizeEvents";
     import Slider from './Slider.svelte'
@@ -14,7 +14,15 @@
     <button on:click={() => optEvents.pause()}>
         <p>Stop</p>
     </button>
-    <p>{optimizeMessage}</p>
+    {#if OR}
+        <p>{optimizeMessage}</p>
+    {:else}
+        {#if $numQueueUsers == 0}
+            <p>You're up next!</p>
+        {:else}
+            <p>{$numQueueUsers} painters before you</p>
+        {/if}
+    {/if}
 {:else if $mode == Mode.PausedOptimizing}
     <button on:click={() => optEvents.accept()}>
         <p>Accept</p>

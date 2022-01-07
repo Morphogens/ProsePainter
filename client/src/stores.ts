@@ -14,6 +14,7 @@ export const canvasSize = localStorageWritable('canvasSize', [512, 512])
 export const mainCanvas = writable(null as null | DrawCanvas)
 export const maskCanvas = writable(null as null | DrawCanvas)
 export const numUsers = writable(0)
+export const numQueueUsers = writable(0)
 
 
 export const optimizationResults = writable(null as null | OptimizationResults)
