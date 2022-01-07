@@ -34,13 +34,12 @@ class AsyncManager:
 
         async_value["websocket"] = websocket
 
+        time.sleep(0.1)
         if user_id in self.active_user_list:
             self.async_value_buffer[user_id].append(async_value)
             self.async_event_loop.set()
 
             logger.debug(f"{user_id} ASYNC VALUE ADDED")
-
-        time.sleep(0)
 
         return
 
@@ -52,6 +51,7 @@ class AsyncManager:
             for _async_idx in range(len(async_value_list)):
                 async_value = async_value_list.pop()
 
+                asyncio.sleep(0.1)
                 if user_id not in self.active_user_list:
                     break
 
@@ -105,6 +105,8 @@ class AsyncManager:
         user_idx = self.active_user_list.index(user_id)
         self.active_user_list.pop(user_idx)
         self.websocket_list.pop(user_idx)
+
+        asyncio.sleep(0.1)
 
         self.num_users -= 1
 
