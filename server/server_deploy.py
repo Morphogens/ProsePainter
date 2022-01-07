@@ -232,10 +232,10 @@ class UserSession:
         Handle incoming messages from the client.
         """
         try:
-            # async_manager.add_user(
-            #     self.user_id,
-            #     self.websocket,
-            # )
+            async_manager.add_user(
+                self.user_id,
+                self.websocket,
+            )
 
             while True:
                 try:
@@ -321,15 +321,12 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
             websocket,
         )
 
+        user_session_task = asyncio.gather(user_session.listen_loop())
+        co_routine_list = [user_session_task]
+
         if run_send_loop:
-            co_routine_list = [
-                async_manager.send_loop(),
-                user_session.listen_loop(),
-            ]
-        else:
-            co_routine_list = [
-                user_session.listen_loop(),
-            ]
+            async_task = asyncio.gather(async_manager.send_loop())
+            co_routine_list.append(async_task, )
 
         await asyncio.wait(
             co_routine_list,
@@ -341,9 +338,15 @@ async def websocket_endpoint(websocket: WebSocket, ) -> None:
 
     finally:
         logger.info("WEBSOCKET DISCONNECTED.")
-        # async_manager.remove_user(user_id, )
+
         optimization_manager.remove_job(user_id, )
-        websocket.close()
+        async_manager.remove_user(user_id, )
+        await websocket.close()
+
+        try:
+            user_session_task.cancel()
+        except:
+            logger.debug(f"{user_id} did not have any running task.")
 
     return
 

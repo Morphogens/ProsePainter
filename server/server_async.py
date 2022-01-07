@@ -34,10 +34,11 @@ class AsyncManager:
 
         async_value["websocket"] = websocket
 
-        self.async_value_buffer[user_id].append(async_value)
-        self.async_event_loop.set()
+        if user_id in self.active_user_list:
+            self.async_value_buffer[user_id].append(async_value)
+            self.async_event_loop.set()
 
-        logger.debug(f"{user_id} ASYNC VALUE ADDED")
+            logger.debug(f"{user_id} ASYNC VALUE ADDED")
 
         time.sleep(0)
 
@@ -48,11 +49,11 @@ class AsyncManager:
         for user_id in user_id_list:
             async_value_list = self.async_value_buffer.pop(user_id)[::-1]
 
-            # if user_id not in self.active_user_list:
-            #     continue
-
             for _async_idx in range(len(async_value_list)):
                 async_value = async_value_list.pop()
+
+                if user_id not in self.active_user_list:
+                    break
 
                 websocket = async_value.pop("websocket")
                 await websocket.send_json(async_value, )
@@ -81,15 +82,15 @@ class AsyncManager:
         self.active_user_list.append(user_id, )
         self.websocket_list.append(websocket, )
 
-        for u_id, ws in zip(self.active_user_list, self.websocket_list):
-            self.set_async_value(
-                u_id,
-                {
-                    'message': 'userCount',
-                    'numUsers': self.num_users,
-                },
-                ws,
-            )
+        # for u_id, ws in zip(self.active_user_list, self.websocket_list):
+        #     self.set_async_value(
+        #         u_id,
+        #         {
+        #             'message': 'userCount',
+        #             'numUsers': self.num_users,
+        #         },
+        #         ws,
+        #     )
 
     def remove_user(
         self,
@@ -98,21 +99,24 @@ class AsyncManager:
         if user_id not in self.active_user_list:
             return
 
-        self.num_users -= 1
+        if user_id in self.async_value_buffer:
+            self.async_value_buffer.pop(user_id)
 
         user_idx = self.active_user_list.index(user_id)
         self.active_user_list.pop(user_idx)
         self.websocket_list.pop(user_idx)
 
-        for user_id, websocket in zip(self.active_user_list,
-                                      self.websocket_list):
-            self.set_async_value(
-                user_id=user_id,
-                async_value={
-                    'message': 'userCount',
-                    'numUsers': self.num_users,
-                },
-                websocket=websocket,
-            )
+        self.num_users -= 1
 
-            logger.debug(f"SENT REMOVE USER NUMBER {self.num_users}")
+        # for user_id, websocket in zip(self.active_user_list,
+        #                               self.websocket_list):
+        #     self.set_async_value(
+        #         user_id=user_id,
+        #         async_value={
+        #             'message': 'userCount',
+        #             'numUsers': self.num_users,
+        #         },
+        #         websocket=websocket,
+        #     )
+
+        #     logger.debug(f"SENT REMOVE USER NUMBER {self.num_users}")

@@ -370,16 +370,17 @@ class OptimizationManager:
                         np.uint8(updated_canvas * 255))
                     updated_canvas_uri = pil_to_base64(updated_canvas_pil)
 
-                    self.async_manager.set_async_value(
-                        user_id=user_id,
-                        async_value={
-                            "message": "gen-results",
-                            "image": updated_canvas_uri,
-                            "step": step,
-                            "num_iterations": self.num_iterations,
-                        },
-                        websocket=websocket,
-                    )
+                    if user_id in self.active_user_list:
+                        self.async_manager.set_async_value(
+                            user_id=user_id,
+                            async_value={
+                                "message": "gen-results",
+                                "image": updated_canvas_uri,
+                                "step": step,
+                                "num_iterations": self.num_iterations,
+                            },
+                            websocket=websocket,
+                        )
 
                 torch.cuda.empty_cache()
                 gc.collect()
