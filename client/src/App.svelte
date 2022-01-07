@@ -11,10 +11,10 @@
     import { downloadCanvas, mergeCanvas } from "./utils";
     import { Mode } from "./types";
     import {
-        lastOptimizationResult,
         mainCanvas,
         maskCanvas,
         canvasSize,
+        selectedOptImage
     } from "./stores";
     import { drawCircle, drawLines } from "./drawing/drawUtils";
     import { drawMaskGridAlpha, drawGrid } from "./maskDrawMethods";
@@ -195,11 +195,11 @@
                     bind:this={outlineCanvas}
                 />
             </div>
-            {#if $lastOptimizationResult}
+            {#if $selectedOptImage}
                 <img
                     id="optPreview"
                     class="hiddenOverlay"
-                    src={$lastOptimizationResult.image.src}
+                    src={$selectedOptImage.src}
                     alt=""
                 />
             {/if}
@@ -314,7 +314,7 @@
     #downloadBeforeAfterButton {
         width: 36px;
         height: 36px;
-        right: 16px;
-        bottom: 76px;
+        right: 76px;
+        bottom: 16;
     }
 </style>

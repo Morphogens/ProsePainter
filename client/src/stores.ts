@@ -1,6 +1,6 @@
-import type { OptimizationResult } from './types'
+import type { OptimizationResults } from './types'
 import { Mode } from './types'
-import { writable } from 'svelte/store'
+import { writable, derived, get} from 'svelte/store'
 import type { Writable } from 'svelte/store'
 import type DrawCanvas from './components/DrawCanvas'
 
@@ -16,7 +16,11 @@ export const maskCanvas = writable(null as null | DrawCanvas)
 export const numUsers = writable(0)
 
 
-export const lastOptimizationResult = writable(null as null | OptimizationResult)
+export const optimizationResults = writable(null as null | OptimizationResults)
+export const selectedOptIdx = writable(0)
+export const selectedOptImage = derived([selectedOptIdx, optimizationResults], ([$idx, $results]) => {
+    return $results == null ? null : $results.images[$idx]
+})
 
 export function localStorageWritable<T>(name:string, defaultValue:T):Writable<T>{
     // Svelte store that persists to localStorage.

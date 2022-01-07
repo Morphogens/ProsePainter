@@ -2,7 +2,7 @@
 import { get } from 'svelte/store'
 import { DEFAULT_IMAGE } from './constants'
 import { canvasToImage, loadImage } from './utils'
-import { mainCanvas, maskCanvas, prompt, lastOptimizationResult, localStorageWritable } from './stores'
+import { mainCanvas, maskCanvas, prompt, localStorageWritable } from './stores'
 import { events } from './optimizeEvents'
 
 interface DrawHistory {
