@@ -49,3 +49,38 @@ jobs:
       
       - name: Test docker image
         run: docker run --rm 775974887579.dkr.ecr.us-east-1.amazonaws.com/prosepainter:${{ github.sha }} conda run --no-capture-output -n prosepaint python /server/server_test.py
+
+  deploy_staging:
+    name: Deploy to staging
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: [test]
+    concurrency: deploy_staging
+    steps:
+      - name: Checkout grid repo
+        uses: actions/checkout@v2
+        with:
+          repository: Morphogens/grid
+          ref: main
+          path: grid
+          ssh-key: "${{ secrets.GRID_DEPLOY_KEY }}"
+      - name: Install aws authenticator
+        run: |
+          curl -o aws-iam-authenticator https://amazon-eks.s3-us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/aws-iam-authenticator
+          chmod +x ./aws-iam-authenticator
+          export PATH="${PWD}:$PATH"
+      - name: Deploy to staging
+        run: |
+          aws eks update-kubeconfig \
+            --region us-east-1 \
+            --name morphogen-staging \
+            --kubeconfig /tmp/kubeconfig
+          KUBECONFIG=/tmp/kubeconfig python grid/scripts/deploy.py \
+            --project prosepainter \
+            --env staging \
+            --image 775974887579.dkr.ecr.us-east-1.amazonaws.com/prosepainter \
+            --tag ${{ github.sha }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
