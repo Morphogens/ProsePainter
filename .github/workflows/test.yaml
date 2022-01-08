@@ -29,6 +29,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha
 
+  # Separating out the build and test phase since we were running into out
+  # of memory errors trying to build and test on the same runner. This will
+  # be a bit slower though since you'll need to push and pull a large container.
+
+  # Really what we need to do is set up dedicated workers that can have more memory
+  # and disk space, and keep a persistent cache of docker layers from run to run.
   test:
     name: Test docker image
     runs-on: ubuntu-latest
