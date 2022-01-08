@@ -20,3 +20,4 @@ dependencies:
     - geniverse==0.1.6
     - requests==2.26.0
     - https://github.com/thegeniverse/clip/archive/main.zip
+    - https://github.com/thegeniverse/taming/archive/master.zip
