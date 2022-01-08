@@ -200,6 +200,8 @@ class OptimizationManager:
         try:
             generator = self.generator_dict[device]
 
+            non_active_list = []
+
             max_resolution = (0, 0)
             for user_params in optim_job_list:
                 cond_img = user_params["cond_img"]
@@ -321,16 +323,19 @@ class OptimizationManager:
 
                 step += 1
 
-                optim_job_list = [
-                    job for job in optim_job_list
-                    if job["user_id"] in self.active_user_list
+                non_active_list = [
+                    job["user_id"] for job in optim_job_list
+                    if job["user_id"] not in self.active_user_list
                 ]
 
-                if len(optim_job_list) == 0:
+                if len(optim_job_list) == len(non_active_list):
                     return
 
                 for user_idx, user_params in enumerate(optim_job_list):
                     user_id = user_params["user_id"]
+                    if user_id in non_active_list:
+                        continue
+
                     websocket = user_params["websocket"]
                     mask_crop_tensor = user_params["mask_crop_tensor"]
                     canvas_img = user_params["canvas_img"]
