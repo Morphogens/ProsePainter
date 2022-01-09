@@ -46,7 +46,10 @@ jobs:
           registry: 775974887579.dkr.ecr.us-east-1.amazonaws.com
           username: ${{ secrets.AWS_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      
+
+      - name: Pull docker image
+        run: docker pull 775974887579.dkr.ecr.us-east-1.amazonaws.com/prosepainter:${{ github.sha }}
+
       - name: Test docker image
         run: docker run --rm 775974887579.dkr.ecr.us-east-1.amazonaws.com/prosepainter:${{ github.sha }} conda run --no-capture-output -n prosepaint python /server/server_test.py
 
