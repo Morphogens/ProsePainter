@@ -63,7 +63,7 @@ class OptimizationManager:
                 f"cuda:{cuda_idx}")
 
     def start(self, ):
-        Thread(target=self.taming_worker, ).start()
+        Thread(target=self.single_taming_worker, ).start()
 
     def add_job(
         self,
@@ -122,8 +122,8 @@ class OptimizationManager:
                     )
 
                 if len(self.job_list) > 0:
-                    for cuda_idx in range(self.num_devices):
-                        for batch_idx in range(self.batch_size):
+                    for batch_idx in range(self.batch_size):
+                        for cuda_idx in range(self.num_devices):
                             current_thread = job_thread_list[cuda_idx][
                                 batch_idx]
 
@@ -133,6 +133,9 @@ class OptimizationManager:
                                         f"Waiting for worker {cuda_idx}/{batch_idx}..."
                                     )
                                     continue
+
+                            if len(self.job_list) == 0:
+                                continue
 
                             job_to_optimize = self.job_list.pop(0)
 
@@ -147,8 +150,11 @@ class OptimizationManager:
                                     "device":
                                     f"cuda:{cuda_idx}",
                                 })
+
                             job_thread_list[cuda_idx][batch_idx] = job_thread
                             job_thread.start()
+
+                            print(job_thread_list, )
 
                             if len(self.job_list) == 0:
                                 break
@@ -175,7 +181,7 @@ class OptimizationManager:
         mask_crop_tensor: torch.Tensor,
         canvas_img,
         crop_limits,
-        device: str = "cuda:0",
+        device: str,
         **kwargs,
     ):
         try:
@@ -205,24 +211,22 @@ class OptimizationManager:
             for _iter_idx in range(self.num_iterations):
                 loss = 0
 
-                for _accum_idx in range(self.num_accum_steps):
-                    gen_img = generator.get_img_from_latents(latents, )
+                gen_img = generator.get_img_from_latents(latents, )
 
-                    img_aug = generator.augment(
-                        gen_img,
-                        num_crops=self.num_crops,
-                    )
-                    img_logits_list = generator.get_clip_img_encodings(
-                        img_aug, )
+                img_aug = generator.augment(
+                    gen_img,
+                    num_crops=self.num_crops,
+                )
+                img_logits_list = generator.get_clip_img_encodings(img_aug, )
 
-                    for img_logits, text_logits in zip(img_logits_list,
-                                                       text_logits_list):
-                        clip_loss = -10 * torch.cosine_similarity(
-                            text_logits, img_logits).mean()
+                for img_logits, text_logits in zip(img_logits_list,
+                                                   text_logits_list):
+                    clip_loss = -10 * torch.cosine_similarity(
+                        text_logits, img_logits).mean()
 
-                        logger.info(f"CLIP LOSS {clip_loss}")
+                    logger.info(f"CLIP LOSS {clip_loss}")
 
-                        loss += clip_loss
+                    loss += clip_loss
 
                 loss.backward(retain_graph=False, )
                 optimizer.step()
