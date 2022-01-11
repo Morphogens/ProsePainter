@@ -46,12 +46,12 @@ class AsyncManager:
     async def send_async_data(self, ):
         user_id_list = list(self.async_value_buffer.keys())
         for user_id in user_id_list:
-            async_value_list = self.async_value_buffer.pop(user_id)[::-1]
+            async_value_list = self.async_value_buffer.pop(user_id)
 
             for _async_idx in range(len(async_value_list)):
-                async_value = async_value_list.pop()
+                async_value = async_value_list.pop(0)
 
-                asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
                 if user_id not in self.active_user_list:
                     break
 
@@ -106,7 +106,7 @@ class AsyncManager:
         self.active_user_list.pop(user_idx)
         self.websocket_list.pop(user_idx)
 
-        asyncio.sleep(0.1)
+        time.sleep(0.1)
 
         self.num_users -= 1
 
@@ -121,4 +121,4 @@ class AsyncManager:
         #         websocket=websocket,
         #     )
 
-        #     logger.debug(f"SENT REMOVE USER NUMBER {self.num_users}")
+        #     logger.debug(f"SENT REMOVE USER NUMBER {self.num_users}"0)

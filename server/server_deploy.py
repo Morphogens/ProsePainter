@@ -148,7 +148,6 @@ class UserSession:
             user_id=self.user_id,
             prompt=prompt,
             cond_img=img_crop_tensor,
-            mask=mask_crop_tensor,
             mask_crop_tensor=mask_crop_tensor,
             canvas_img=canvas_img,
             crop_limits=crop_limits,
