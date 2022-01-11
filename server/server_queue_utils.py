@@ -106,7 +106,14 @@ class OptimizationManager:
         return
 
     def single_taming_worker(self, ):
-        job_thread_list = [[None] * self.batch_size] * self.num_devices
+        job_thread_list = []
+        for cuda_idx in range(self.num_devices):
+            device_list = []
+
+            for batch_idx in range(self.batch_size):
+                device_list.append(None)
+
+            job_thread_list.append(device_list)
 
         while True:
             try:
