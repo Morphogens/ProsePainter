@@ -32,12 +32,3 @@ cd client
 npm run dev
 ```
 Open http://localhost:8003/ in your web browser.
-
-### Build and run with Docker
-
-```
-docker build . -t prosepainter:latest
-docker run -p 8004:80 -v `pwd`/server:/server prosepainter:latest
-```
-
-Open http://localhost:8004/ in your web browser.
